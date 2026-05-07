@@ -175,13 +175,12 @@ export const GraphCanvas: React.FC<Props> = ({ nodes, edges, exposureMap, source
     const sNodes = simNodesRef.current;
     if (!sNodes.length) return;
 
-    const REPULSION  = 2000;
-    const SPRING_K   = 0.030;
-    const SPRING_LEN = 80;
-    const CLUSTER_K  = 0.050;
-    const WALL_K     = 0.10;
-    const WALL_PAD   = 20;
-    const DAMPING    = 0.78;
+    const REPULSION  = 2200;
+    const SPRING_K   = 0.012;
+    const SPRING_LEN = 90;
+    const CLUSTER_K  = 0.18;
+    const WALL_PAD   = 22;
+    const DAMPING    = 0.75;
 
     for (let i = 0; i < sNodes.length; i++) {
       for (let j = i + 1; j < sNodes.length; j++) {
@@ -216,20 +215,25 @@ export const GraphCanvas: React.FC<Props> = ({ nodes, edges, exposureMap, source
       const cy = (rd.ry + rd.rh / 2) * H;
       n.vx += (cx - n.x) * CLUSTER_K;
       n.vy += (cy - n.y) * CLUSTER_K;
-
-      const left  = rd.rx * W + WALL_PAD;
-      const right = (rd.rx + rd.rw) * W - WALL_PAD;
-      const top   = rd.ry * H + WALL_PAD + 18;
-      const bot   = (rd.ry + rd.rh) * H - WALL_PAD;
-      if (n.x < left)  n.vx += (left  - n.x) * WALL_K;
-      if (n.x > right) n.vx += (right - n.x) * WALL_K;
-      if (n.y < top)   n.vy += (top   - n.y) * WALL_K;
-      if (n.y > bot)   n.vy += (bot   - n.y) * WALL_K;
     }
 
     for (const n of sNodes) {
-      if (n.fx !== null) { n.x = n.fx; n.y = n.fy!; }
-      else { n.vx *= DAMPING; n.vy *= DAMPING; n.x += n.vx; n.y += n.vy; }
+      if (n.fx !== null) { n.x = n.fx; n.y = n.fy!; continue; }
+      n.vx *= DAMPING; n.vy *= DAMPING;
+      n.x += n.vx; n.y += n.vy;
+
+      // Hard clamp — node cannot leave its room
+      const rd = ROOM_DEFS[n.city];
+      if (rd) {
+        const left  = rd.rx * W + WALL_PAD;
+        const right = (rd.rx + rd.rw) * W - WALL_PAD;
+        const top   = rd.ry * H + WALL_PAD + 18;
+        const bot   = (rd.ry + rd.rh) * H - WALL_PAD;
+        if (n.x < left)  { n.x = left;  n.vx =  Math.abs(n.vx) * 0.2; }
+        if (n.x > right) { n.x = right; n.vx = -Math.abs(n.vx) * 0.2; }
+        if (n.y < top)   { n.y = top;   n.vy =  Math.abs(n.vy) * 0.2; }
+        if (n.y > bot)   { n.y = bot;   n.vy = -Math.abs(n.vy) * 0.2; }
+      }
     }
 
     draw(ctx, W, H);
