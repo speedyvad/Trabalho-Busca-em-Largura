@@ -155,22 +155,8 @@ def bfs_all(graph: dict, source: int) -> dict:
 
 
 async def fetch_users() -> list:
-    """Tenta JSONPlaceholder; em caso de falha usa os 25 mock users."""
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(
-                "https://jsonplaceholder.typicode.com/users",
-                headers={"User-Agent": "OutbreakTracker/3.0"}
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            from mock_data import MOCK_USERS
-            existing_ids = {u["id"] for u in data}
-            extra = [u for u in MOCK_USERS if u["id"] not in existing_ids]
-            return data + extra
-    except Exception:
-        from mock_data import MOCK_USERS
-        return MOCK_USERS
+    from mock_data import MOCK_USERS
+    return MOCK_USERS
 
 
 def clamp_limit(limit: int) -> int:
