@@ -24,15 +24,17 @@ const EDGE_NORMAL      = "rgba(20,60,100,0.50)";
 interface RoomDef { rx: number; ry: number; rw: number; rh: number; label: string; icon: string; }
 
 const ROOM_DEFS: Record<string, RoomDef> = {
-  "Recepção":   { rx: 0.02, ry: 0.03, rw: 0.13, rh: 0.35, label: "Recepção",   icon: "🚪" },
-  "TI":         { rx: 0.19, ry: 0.03, rw: 0.22, rh: 0.35, label: "TI / Dev",   icon: "🖥" },
-  "Financeiro": { rx: 0.46, ry: 0.03, rw: 0.21, rh: 0.35, label: "Financeiro", icon: "📊" },
-  "Diretoria":  { rx: 0.02, ry: 0.44, rw: 0.15, rh: 0.35, label: "Diretoria",  icon: "🏛" },
-  "RH":         { rx: 0.21, ry: 0.44, rw: 0.21, rh: 0.35, label: "RH",         icon: "👥" },
-  "Comercial":  { rx: 0.46, ry: 0.44, rw: 0.27, rh: 0.35, label: "Comercial",  icon: "💼" },
-  "Jurídico":   { rx: 0.02, ry: 0.85, rw: 0.23, rh: 0.13, label: "Jurídico",   icon: "⚖" },
-  "Operações":  { rx: 0.31, ry: 0.85, rw: 0.26, rh: 0.13, label: "Operações",  icon: "⚙" },
+  "Recepção":   { rx: 0.02, ry: 0.03, rw: 0.14, rh: 0.36, label: "Recepção",   icon: "🚪" },
+  "TI":         { rx: 0.20, ry: 0.03, rw: 0.23, rh: 0.36, label: "TI / Dev",   icon: "🖥" },
+  "Financeiro": { rx: 0.47, ry: 0.03, rw: 0.22, rh: 0.36, label: "Financeiro", icon: "📊" },
+  "Diretoria":  { rx: 0.02, ry: 0.44, rw: 0.16, rh: 0.36, label: "Diretoria",  icon: "🏛" },
+  "RH":         { rx: 0.22, ry: 0.44, rw: 0.22, rh: 0.36, label: "RH",         icon: "👥" },
+  "Comercial":  { rx: 0.47, ry: 0.44, rw: 0.28, rh: 0.36, label: "Comercial",  icon: "💼" },
+  "Jurídico":   { rx: 0.02, ry: 0.85, rw: 0.24, rh: 0.13, label: "Jurídico",   icon: "⚖" },
+  "Operações":  { rx: 0.30, ry: 0.85, rw: 0.27, rh: 0.13, label: "Operações",  icon: "⚙" },
 };
+
+const WALL_PAD = 24;
 
 interface SimNode extends GraphNode {
   x: number; y: number; vx: number; vy: number;
@@ -80,9 +82,20 @@ export const GraphCanvas: React.FC<Props> = ({ nodes, edges, exposureMap, source
 
   // ── Desenho ────────────────────────────────────────────────────────────────
   const draw = useCallback((ctx: CanvasRenderingContext2D, W: number, H: number) => {
+    // Background gradient + dot grid
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, W, H);
+    const bg = ctx.createRadialGradient(W * 0.4, H * 0.35, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.75);
+    bg.addColorStop(0, "#0c2240");
+    bg.addColorStop(1, "#071221");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "rgba(0,120,100,0.07)";
+    const gs = 30;
+    for (let gx = 0; gx < W; gx += gs)
+      for (let gy = 0; gy < H; gy += gs) {
+        ctx.beginPath(); ctx.arc(gx, gy, 1, 0, Math.PI * 2); ctx.fill();
+      }
     ctx.restore();
 
     ctx.save();
@@ -101,18 +114,41 @@ export const GraphCanvas: React.FC<Props> = ({ nodes, edges, exposureMap, source
       const x = rd.rx * W, y = rd.ry * H, w = rd.rw * W, h = rd.rh * H;
       const hot = contamRooms.has(roomName);
 
-      roundRect(ctx, x, y, w, h, 8);
-      ctx.fillStyle   = hot ? "rgba(255,61,87,0.10)" : "rgba(10,40,70,0.70)";
+      // Gradient fill
+      const grad = ctx.createLinearGradient(x, y, x + w, y + h);
+      if (hot) {
+        grad.addColorStop(0, "rgba(255,61,87,0.18)");
+        grad.addColorStop(1, "rgba(180,30,50,0.06)");
+      } else {
+        grad.addColorStop(0, "rgba(14,52,92,0.88)");
+        grad.addColorStop(1, "rgba(7,25,52,0.62)");
+      }
+      roundRect(ctx, x, y, w, h, 12);
+      ctx.fillStyle = grad;
       ctx.fill();
-      ctx.strokeStyle = hot ? "rgba(255,100,80,0.70)" : "rgba(0,150,120,0.40)";
-      ctx.lineWidth   = hot ? 1.5 : 1;
-      ctx.stroke();
 
-      ctx.font         = "600 11px Inter, sans-serif";
-      ctx.fillStyle    = hot ? "rgba(255,150,100,0.90)" : "rgba(0,196,167,0.75)";
+      ctx.shadowColor = hot ? "rgba(255,61,87,0.45)" : "rgba(0,196,167,0.18)";
+      ctx.shadowBlur  = hot ? 14 : 5;
+      ctx.strokeStyle = hot ? "rgba(255,100,80,0.90)" : "rgba(0,180,140,0.52)";
+      ctx.lineWidth   = hot ? 2 : 1;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Pill label
+      ctx.font = "600 11px Inter, sans-serif";
+      const labelText = `${rd.icon} ${rd.label}`;
+      const tw = ctx.measureText(labelText).width;
+      const px = 8, py = 7, ph = 20, pr = 5;
+      roundRect(ctx, x + px, y + py, tw + 16, ph, pr);
+      ctx.fillStyle   = hot ? "rgba(255,80,60,0.28)" : "rgba(0,150,120,0.20)";
+      ctx.fill();
+      ctx.strokeStyle = hot ? "rgba(255,130,90,0.55)" : "rgba(0,190,150,0.38)";
+      ctx.lineWidth   = 0.8;
+      ctx.stroke();
+      ctx.fillStyle    = hot ? "rgba(255,170,140,0.95)" : "rgba(0,215,175,0.92)";
       ctx.textAlign    = "left";
-      ctx.textBaseline = "top";
-      ctx.fillText(`${rd.icon} ${rd.label}`, x + 8, y + 7);
+      ctx.textBaseline = "middle";
+      ctx.fillText(labelText, x + px + 8, y + py + ph / 2);
     }
 
     // 2. Arestas
@@ -175,12 +211,11 @@ export const GraphCanvas: React.FC<Props> = ({ nodes, edges, exposureMap, source
     const sNodes = simNodesRef.current;
     if (!sNodes.length) return;
 
-    const REPULSION  = 2200;
-    const SPRING_K   = 0.012;
-    const SPRING_LEN = 90;
-    const CLUSTER_K  = 0.18;
-    const WALL_PAD   = 22;
-    const DAMPING    = 0.75;
+    const REPULSION  = 4800;
+    const SPRING_K   = 0.008;
+    const SPRING_LEN = 100;
+    const CLUSTER_K  = 0.14;
+    const DAMPING    = 0.76;
 
     for (let i = 0; i < sNodes.length; i++) {
       for (let j = i + 1; j < sNodes.length; j++) {
@@ -355,8 +390,15 @@ export const GraphCanvas: React.FC<Props> = ({ nodes, edges, exposureMap, source
     const { x, y } = toWorld(e.clientX - rect.left, e.clientY - rect.top);
 
     if (dragRef.current) {
-      dragRef.current.node.fx = x;
-      dragRef.current.node.fy = y;
+      const n = dragRef.current.node;
+      const rd = ROOM_DEFS[n.city];
+      let nx = x, ny = y;
+      if (rd) {
+        const W = wRef.current, H = hRef.current;
+        nx = Math.max(rd.rx * W + WALL_PAD, Math.min((rd.rx + rd.rw) * W - WALL_PAD, nx));
+        ny = Math.max(rd.ry * H + WALL_PAD + 18, Math.min((rd.ry + rd.rh) * H - WALL_PAD, ny));
+      }
+      n.fx = nx; n.fy = ny;
       if (tooltipRef.current) tooltipRef.current.style.opacity = "0";
       return;
     }
