@@ -34,7 +34,7 @@ export const SpreadResultPanel: React.FC<Props> = ({ result, isLoading }) => {
   const safe     = result.total_safe;
 
   // Salas únicas dos expostos em ordem de aparição
-  const roomPath = [...new Set(result.exposed.map((e) => e.city))];
+  const roomPath = Array.from(new Set(result.exposed.map((e) => e.city)));
 
   const directContacts = result.exposed.filter((e) => e.distance === 1);
 
