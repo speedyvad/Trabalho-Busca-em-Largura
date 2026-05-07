@@ -7,10 +7,11 @@ import { GraphData, FarthestUsersResult, findFarthestUsers } from "../api";
 
 interface Props {
   graphData: GraphData | null;
+  userLimit: number;
   onFarthestFound: (result: FarthestUsersResult) => void;
 }
 
-export const StatsPanel: React.FC<Props> = ({ graphData, onFarthestFound }) => {
+export const StatsPanel: React.FC<Props> = ({ graphData, userLimit, onFarthestFound }) => {
   const [farthest, setFarthest] = useState<FarthestUsersResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +20,7 @@ export const StatsPanel: React.FC<Props> = ({ graphData, onFarthestFound }) => {
     setLoading(true);
     setError(null);
     try {
-      const result = await findFarthestUsers();
+      const result = await findFarthestUsers(userLimit);
       setFarthest(result);
       onFarthestFound(result);
     } catch (err) {
