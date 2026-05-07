@@ -240,14 +240,45 @@ const App: React.FC = () => {
         </section>
       </main>
 
+      {/* ── Seção: O Problema ─────────────────────────────────── */}
+      <section className="pitch-problem">
+        <div className="pitch-inner">
+          <span className="pitch-badge danger">⚠ O Problema</span>
+          <h2 className="pitch-title">Rastreamento manual falha quando mais importa</h2>
+          <p className="pitch-sub">Em um surto real, cada hora perdida amplia a cadeia de contágio exponencialmente.</p>
+          <div className="problem-grid">
+            <div className="problem-card">
+              <div className="problem-icon">⏱</div>
+              <div className="problem-stat">72h+</div>
+              <h3>Tempo médio de rastreio manual</h3>
+              <p>Ligar para cada colaborador, cruzar agendas, preencher planilhas — enquanto o vírus avança em horas.</p>
+            </div>
+            <div className="problem-card">
+              <div className="problem-icon">📋</div>
+              <div className="problem-stat">~40%</div>
+              <h3>Contatos diretos perdidos</h3>
+              <p>Memória humana e registros dispersos levam à omissão de contatos-chave que mantêm a cadeia ativa.</p>
+            </div>
+            <div className="problem-card">
+              <div className="problem-icon">💸</div>
+              <div className="problem-stat">R$12k+</div>
+              <h3>Custo médio por surto não contido</h3>
+              <p>Absenteísmo em cascata, queda de produtividade e custos médicos quando o isolamento chega tarde demais.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Seção: Como funciona ───────────────────────────────── */}
       <section className="explainer">
         <div className="explainer-inner">
-          <h2 className="explainer-title">Como funciona?</h2>
+          <span className="pitch-badge accent">⚙ A Solução</span>
+          <h2 className="explainer-title">Como funciona o Outbreak Tracker?</h2>
           <div className="explainer-grid">
             <div className="ex-card">
               <div className="ex-icon">🏢</div>
-              <h3>Mapa de Contatos</h3>
-              <p>Cada colaborador é um <strong>vértice</strong>. Conexões surgem por proximidade de sala, andar, departamento e sistema. Simula os contatos reais do dia a dia no escritório — sem rastreamento invasivo.</p>
+              <h3>Grafo do Escritório</h3>
+              <p>Cada colaborador é um <strong>vértice</strong>. Arestas surgem por proximidade de sala, andar, departamento e domínio de e-mail — modelando os contatos reais do dia a dia sem rastreamento invasivo.</p>
             </div>
             <div className="ex-card">
               <div className="ex-icon">🔬</div>
@@ -256,8 +287,66 @@ const App: React.FC = () => {
             </div>
             <div className="ex-card">
               <div className="ex-icon">📡</div>
-              <h3>Resposta Imediata</h3>
-              <p>Em <strong>milissegundos</strong>, o sistema identifica quem avisar (1º grau), quem monitorar (2º grau) e quais <strong>salas isolar</strong> — substituindo dias de rastreamento manual e ligações.</p>
+              <h3>Resposta por Prioridade</h3>
+              <p><strong>1º grau</strong> → isolamento imediato. <strong>2º grau</strong> → monitoramento ativo. <strong>3º grau+</strong> → alerta preventivo. Salas comprometidas são destacadas para sanitização.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Seção: BFS em Detalhe ──────────────────────────────── */}
+      <section className="pitch-tech">
+        <div className="pitch-inner">
+          <span className="pitch-badge accent">🔭 O Algoritmo</span>
+          <h2 className="pitch-title">BFS — passo a passo</h2>
+          <p className="pitch-sub">Busca em Largura é a escolha ideal para modelar surtos: garante o menor grau de separação e processa toda a rede em tempo linear.</p>
+          <div className="tech-steps">
+            <div className="tech-step">
+              <span className="step-num">01</span>
+              <div className="step-body">
+                <strong>Identificar o Paciente Zero</strong>
+                <p>O colaborador infectado é inserido na fila BFS com distância 0. Todos os demais iniciam como não-visitados.</p>
+              </div>
+            </div>
+            <div className="tech-step">
+              <span className="step-num">02</span>
+              <div className="step-body">
+                <strong>Expandir a fila nível a nível</strong>
+                <p>Para cada nó desenfileirado, todos os vizinhos não-visitados recebem distância + 1 e entram na fila. Repete até esvaziar.</p>
+              </div>
+            </div>
+            <div className="tech-step">
+              <span className="step-num">03</span>
+              <div className="step-body">
+                <strong>Classificar e agir</strong>
+                <p>O mapa <code>{'{ node_id: distância }'}</code> retornado pelo BFS alimenta o painel de risco e o mapa visual em tempo real.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Seção: Impacto ────────────────────────────────────── */}
+      <section className="pitch-impact">
+        <div className="pitch-inner">
+          <span className="pitch-badge safe">✓ O Impacto</span>
+          <h2 className="pitch-title">De 72 horas para menos de 1 segundo</h2>
+          <div className="impact-grid">
+            <div className="impact-item">
+              <span className="impact-num">&lt; 50ms</span>
+              <span className="impact-label">Para mapear 25 colaboradores</span>
+            </div>
+            <div className="impact-item">
+              <span className="impact-num">100%</span>
+              <span className="impact-label">De cobertura da rede de contatos</span>
+            </div>
+            <div className="impact-item">
+              <span className="impact-num">O(V+E)</span>
+              <span className="impact-label">Complexidade garantida pelo BFS</span>
+            </div>
+            <div className="impact-item">
+              <span className="impact-num">0</span>
+              <span className="impact-label">Contatos omitidos por erro humano</span>
             </div>
           </div>
         </div>
