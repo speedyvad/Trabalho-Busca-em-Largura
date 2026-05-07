@@ -1,87 +1,116 @@
 /**
- * PathResult.tsx — Componente para exibição do resultado BFS
- * Mostra o caminho passo a passo com animação de entrada.
+ * PathResult.tsx — Exibe o resultado do rastreamento de contágio (SpreadResult).
+ * Exporta SpreadResultPanel para uso em App.tsx.
  */
 
 import React from "react";
-import { ShortestPathResult } from "../api";
+import { SpreadResult } from "../api";
 
 interface Props {
-  result: ShortestPathResult | null;
+  result: SpreadResult | null;
   isLoading: boolean;
 }
 
-export const PathResult: React.FC<Props> = ({ result, isLoading }) => {
+export const SpreadResultPanel: React.FC<Props> = ({ result, isLoading }) => {
   if (isLoading) {
     return (
       <div className="result-card loading-card">
         <div className="bfs-animation">
           <div className="bfs-ring" />
-          <div className="bfs-ring" style={{ animationDelay: "0.2s" }} />
-          <div className="bfs-ring" style={{ animationDelay: "0.4s" }} />
+          <div className="bfs-ring" style={{ animationDelay: "0.35s" }} />
+          <div className="bfs-ring" style={{ animationDelay: "0.7s" }} />
         </div>
-        <p className="loading-text">Executando BFS...</p>
-        <p className="loading-sub">Explorando o grafo nível por nível</p>
+        <p className="loading-text">Rastreando contágio...</p>
+        <p className="loading-sub">BFS explorando o grafo nível por nível</p>
       </div>
     );
   }
 
   if (!result) return null;
 
-  if (!result.exists) {
-    return (
-      <div className="result-card error-card">
-        <div className="result-icon">⚠️</div>
-        <h3>Sem caminho encontrado</h3>
-        <p>{result.message}</p>
-      </div>
-    );
-  }
+  const direct   = result.by_degree["1"] ?? 0;
+  const second   = result.by_degree["2"] ?? 0;
+  const thirdUp  = result.by_degree["3"] ?? 0;
+  const safe     = result.total_safe;
+
+  // Salas únicas dos expostos em ordem de aparição
+  const roomPath = [...new Set(result.exposed.map((e) => e.city))];
+
+  const directContacts = result.exposed.filter((e) => e.distance === 1);
 
   return (
     <div className="result-card success-card">
+      {/* Cabeçalho com badge */}
       <div className="result-header">
         <div className="result-badge">
-          <span className="badge-number">{result.distance}</span>
-          <span className="badge-label">
-            {result.distance === 1 ? "salto" : "saltos"}
-          </span>
+          <span className="badge-number">{result.total_exposed}</span>
+          <span className="badge-label">em risco</span>
         </div>
         <div className="result-title">
-          <h3>Caminho mais curto encontrado</h3>
-          <p className="result-msg">{result.message}</p>
+          <h3>Cadeia de contágio mapeada</h3>
+          <p className="result-msg">
+            Originado em <strong>{result.source.name}</strong> · {result.source.city}
+          </p>
         </div>
       </div>
 
-      <div className="path-steps">
-        {result.path_details.map((user, idx) => (
-          <React.Fragment key={user.id}>
+      {/* Rota de salas */}
+      {roomPath.length > 0 && (
+        <div className="room-route">
+          <span className="room-route-label">ROTA&nbsp;</span>
+          {roomPath.map((room, i) => (
+            <React.Fragment key={room}>
+              <span className="room-chip">{room}</span>
+              {i < roomPath.length - 1 && (
+                <span className="room-route-arrow">→</span>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      )}
+
+      {/* Grade de graus de exposição */}
+      <div className="exposure-grid">
+        <div className="exp-item" style={{ borderColor: "#ff8142" }}>
+          <span className="exp-num" style={{ color: "#ff8142" }}>{direct}</span>
+          <span className="exp-label">Contato direto</span>
+        </div>
+        <div className="exp-item" style={{ borderColor: "#ffc04a" }}>
+          <span className="exp-num" style={{ color: "#ffc04a" }}>{second}</span>
+          <span className="exp-label">2º grau</span>
+        </div>
+        <div className="exp-item" style={{ borderColor: "#ffd166" }}>
+          <span className="exp-num" style={{ color: "#ffd166" }}>{thirdUp}</span>
+          <span className="exp-label">3º grau+</span>
+        </div>
+        <div className="exp-item" style={{ borderColor: "#06d6a0" }}>
+          <span className="exp-num" style={{ color: "#06d6a0" }}>{safe}</span>
+          <span className="exp-label">Seguros</span>
+        </div>
+      </div>
+
+      {/* Lista de contatos diretos */}
+      {directContacts.length > 0 && (
+        <div className="path-steps">
+          <p className="contacts-header">⚠ Avisar imediatamente (1º grau)</p>
+          {directContacts.map((person, idx) => (
             <div
-              className={`path-node ${idx === 0 ? "source-node" : ""} ${
-                idx === result.path_details.length - 1 ? "target-node" : ""
-              }`}
-              style={{ animationDelay: `${idx * 0.1}s` }}
+              key={person.id}
+              className="path-node"
+              style={{ animationDelay: `${idx * 0.08}s` }}
             >
-              <div className="node-avatar">
-                <span className="node-id">{user.id}</span>
+              <div className="node-avatar" style={{ background: "#ff8142" }}>
+                <span className="node-id">{person.id}</span>
               </div>
               <div className="node-info">
-                <span className="node-name">{user.name}</span>
-                <span className="node-meta">
-                  {user.city} · {user.company}
-                </span>
+                <span className="node-name">{person.name}</span>
+                <span className="node-meta">{person.city} · {person.company}</span>
               </div>
-              {idx === 0 && <span className="node-tag source-tag">Origem</span>}
-              {idx === result.path_details.length - 1 && (
-                <span className="node-tag target-tag">Destino</span>
-              )}
+              <span className="node-tag" style={{ background: "#ff8142" }}>1º grau</span>
             </div>
-            {idx < result.path_details.length - 1 && (
-              <div className="path-arrow">↓</div>
-            )}
-          </React.Fragment>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

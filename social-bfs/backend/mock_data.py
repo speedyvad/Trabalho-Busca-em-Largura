@@ -1,247 +1,291 @@
 """
-Dados mock que replicam exatamente a estrutura de https://jsonplaceholder.typicode.com/users
-15 usuários com dados diversificados: cidades, empresas, e-mails, CEPs e coordenadas variados.
+Dados mock — 25 colaboradores distribuídos em 8 salas do escritório.
+address.city  = nome da sala (usado pela regra "mesma sala" no grafo)
+address.geo   = coordenada da sala numa grade 70-unit × 70-unit
+                salas adjacentes ficam a 70 u (< limiar 80) → conectadas
+Andares / grade:
+
+  Andar 1:  Recepção(5,5)   TI(5,75)    Financeiro(5,145)
+  Andar 2:  Diretoria(75,5) RH(75,75)   Comercial(75,145)
+  Andar 3:  Jurídico(145,5) Operações(145,75)
+
+E-mail domains cruzam departamentos:
+  @empresa.com   → RH + Diretoria + Recepção   (andar executivo)
+  @techcorp.dev  → TI
+  @fin.corp      → Financeiro
+  @vendas.io     → Comercial + Operações
+  @juridico.com  → Jurídico
+
+CEP prefix:
+  01 → Andar 1: Recepção, TI, Financeiro
+  02 → Andar 2: Diretoria, RH, Comercial
+  03 → Andar 3: Jurídico, Operações
 """
 
 MOCK_USERS = [
+    # ── Recepção — Andar 1, lat≈5, lng≈5 ──────────────────────────────────────
     {
-        "id": 1,
-        "name": "Leanne Graham",
-        "username": "Bret",
-        "email": "Sincere@april.biz",
-        "address": {
-            "street": "Kulas Light",
-            "suite": "Apt. 556",
-            "city": "Gwenborough",
-            "zipcode": "92998-3874",
-            "geo": {"lat": "-37.3159", "lng": "81.1496"}
-        },
-        "phone": "1-770-736-8031 x56442",
-        "website": "hildegard.org",
-        "company": {"name": "Romaguera-Crona", "catchPhrase": "Multi-layered client-server neural-net", "bs": "harness real-time e-markets"}
+        "id": 1, "name": "Leanne Graham", "username": "leannegraham",
+        "email": "leanne.graham@empresa.com",
+        "address": {"street": "Balcão Principal", "suite": "Entrada",
+                    "city": "Recepção", "zipcode": "01001-001",
+                    "geo": {"lat": "3.7", "lng": "3.4"}},
+        "phone": "11-99000-0001", "website": "leannegraham.org",
+        "company": {"name": "Recepção & Facilities",
+                    "catchPhrase": "Primeiro contato", "bs": "manage visitor flow"}
     },
     {
-        "id": 2,
-        "name": "Ervin Howell",
-        "username": "Antonette",
-        "email": "Shanna@melissa.tv",
-        "address": {
-            "street": "Victor Plains",
-            "suite": "Suite 879",
-            "city": "Wisokyburgh",
-            "zipcode": "90566-7771",
-            "geo": {"lat": "-43.9509", "lng": "-34.4618"}
-        },
-        "phone": "010-692-6593 x09125",
-        "website": "anastasia.net",
-        "company": {"name": "Deckow-Crist", "catchPhrase": "Proactive didactic contingency", "bs": "synergize scalable supply-chains"}
+        "id": 2, "name": "Clementina DuBuque", "username": "clementinadu",
+        "email": "clementina.dubuque@empresa.com",
+        "address": {"street": "Balcão Secundário", "suite": "Entrada",
+                    "city": "Recepção", "zipcode": "01001-001",
+                    "geo": {"lat": "6.3", "lng": "6.7"}},
+        "phone": "11-99000-0002", "website": "clementinadu.net",
+        "company": {"name": "Recepção & Facilities",
+                    "catchPhrase": "Atendimento premium", "bs": "coordinate facilities"}
+    },
+
+    # ── TI / Desenvolvimento — Andar 1, lat≈5, lng≈75 ─────────────────────────
+    {
+        "id": 3, "name": "João Silva", "username": "joaosilva",
+        "email": "joao.silva@techcorp.dev",
+        "address": {"street": "Mesa 1-TI", "suite": "Bloco Dev",
+                    "city": "TI", "zipcode": "01002-100",
+                    "geo": {"lat": "3.2", "lng": "73.1"}},
+        "phone": "11-99001-0003", "website": "joaosilva.dev",
+        "company": {"name": "Depto. de Tecnologia",
+                    "catchPhrase": "Inovação contínua", "bs": "build scalable systems"}
     },
     {
-        "id": 3,
-        "name": "Clementine Bauch",
-        "username": "Samantha",
-        "email": "Nathan@yesenia.net",
-        "address": {
-            "street": "Douglas Extension",
-            "suite": "Suite 847",
-            "city": "McKenziehaven",
-            "zipcode": "59590-4157",
-            "geo": {"lat": "-68.6102", "lng": "-47.0653"}
-        },
-        "phone": "1-463-123-4447",
-        "website": "ramiro.info",
-        "company": {"name": "Romaguera-Jacobson", "catchPhrase": "Face to face bifurcated interface", "bs": "e-enable strategic applications"}
+        "id": 4, "name": "Mariana Costa", "username": "marianacosta",
+        "email": "mariana.costa@techcorp.dev",
+        "address": {"street": "Mesa 2-TI", "suite": "Bloco Dev",
+                    "city": "TI", "zipcode": "01002-100",
+                    "geo": {"lat": "6.8", "lng": "77.3"}},
+        "phone": "11-99001-0004", "website": "marianacosta.io",
+        "company": {"name": "Depto. de Tecnologia",
+                    "catchPhrase": "Código limpo", "bs": "deliver fast features"}
     },
     {
-        "id": 4,
-        "name": "Patricia Lebsack",
-        "username": "Karianne",
-        "email": "Julianne.OConner@kory.org",
-        "address": {
-            "street": "Hoeger Mall",
-            "suite": "Apt. 692",
-            "city": "South Elvis",
-            "zipcode": "53919-4257",
-            "geo": {"lat": "29.4572", "lng": "-164.2990"}
-        },
-        "phone": "493-170-9623 x156",
-        "website": "kale.biz",
-        "company": {"name": "Robel-Corkery", "catchPhrase": "Multi-tiered zero tolerance productivity", "bs": "transition cutting-edge web services"}
+        "id": 5, "name": "Carlos Oliveira", "username": "carlosoliv",
+        "email": "carlos.oliveira@techcorp.dev",
+        "address": {"street": "Mesa 3-TI", "suite": "Bloco Dev",
+                    "city": "TI", "zipcode": "01002-100",
+                    "geo": {"lat": "4.5", "lng": "76.2"}},
+        "phone": "11-99001-0005", "website": "carlosoliv.com",
+        "company": {"name": "Depto. de Tecnologia",
+                    "catchPhrase": "DevOps specialist", "bs": "automate everything"}
     },
     {
-        "id": 5,
-        "name": "Chelsey Dietrich",
-        "username": "Kamren",
-        "email": "Lucio_Hettinger@annie.ca",
-        "address": {
-            "street": "Skiles Walks",
-            "suite": "Suite 351",
-            "city": "Roscoeview",
-            "zipcode": "33263-8891",
-            "geo": {"lat": "-31.8129", "lng": "62.5342"}
-        },
-        "phone": "(254)954-1289",
-        "website": "demarco.info",
-        "company": {"name": "Keebler LLC", "catchPhrase": "User-centric fault-tolerant solution", "bs": "revolutionize end-to-end systems"}
+        "id": 6, "name": "Rafael Santos", "username": "rafaelsantos",
+        "email": "rafael.santos@techcorp.dev",
+        "address": {"street": "Mesa 4-TI", "suite": "Bloco Dev",
+                    "city": "TI", "zipcode": "01002-100",
+                    "geo": {"lat": "7.1", "lng": "74.8"}},
+        "phone": "11-99001-0006", "website": "rafaelsantos.dev",
+        "company": {"name": "Depto. de Tecnologia",
+                    "catchPhrase": "Full stack ninja", "bs": "ship products daily"}
+    },
+
+    # ── Financeiro — Andar 1, lat≈5, lng≈145 ─────────────────────────────────
+    {
+        "id": 7, "name": "Patricia Lima", "username": "patricialima",
+        "email": "patricia.lima@fin.corp",
+        "address": {"street": "Mesa 1-Fin", "suite": "Bloco Financeiro",
+                    "city": "Financeiro", "zipcode": "01003-200",
+                    "geo": {"lat": "3.8", "lng": "143.5"}},
+        "phone": "11-99002-0007", "website": "patricialima.biz",
+        "company": {"name": "Financeiro & Controladoria",
+                    "catchPhrase": "Números precisos", "bs": "maximize ROI"}
     },
     {
-        "id": 6,
-        "name": "Dennis Schulist",
-        "username": "Leopoldo_Corkery",
-        "email": "Karley_Dach@jasper.info",
-        "address": {
-            "street": "Norberto Crossing",
-            "suite": "Apt. 950",
-            "city": "South Christy",
-            "zipcode": "23505-1337",
-            "geo": {"lat": "-71.4197", "lng": "71.7478"}
-        },
-        "phone": "1-477-935-8478 x6430",
-        "website": "ola.org",
-        "company": {"name": "Considine-Lockman", "catchPhrase": "Synchronised bottom-line interface", "bs": "e-enable innovative applications"}
+        "id": 8, "name": "Eduardo Moreira", "username": "eduardomoreira",
+        "email": "eduardo.moreira@fin.corp",
+        "address": {"street": "Mesa 2-Fin", "suite": "Bloco Financeiro",
+                    "city": "Financeiro", "zipcode": "01003-200",
+                    "geo": {"lat": "6.2", "lng": "146.7"}},
+        "phone": "11-99002-0008", "website": "eduardomoreira.net",
+        "company": {"name": "Financeiro & Controladoria",
+                    "catchPhrase": "Auditoria eficiente", "bs": "optimize budgets"}
     },
     {
-        "id": 7,
-        "name": "Kurtis Weissnat",
-        "username": "Elwyn.Skiles",
-        "email": "Telly.Hoeger@billy.biz",
-        "address": {
-            "street": "Rex Trail",
-            "suite": "Suite 280",
-            "city": "Howemouth",
-            "zipcode": "58804-1099",
-            "geo": {"lat": "24.8918", "lng": "21.8984"}
-        },
-        "phone": "210.067.6132",
-        "website": "elvis.io",
-        "company": {"name": "Johns Group", "catchPhrase": "Configurable multimedia task-force", "bs": "generate enterprise e-tailers"}
+        "id": 9, "name": "Bianca Alves", "username": "biancaalves",
+        "email": "bianca.alves@fin.corp",
+        "address": {"street": "Mesa 3-Fin", "suite": "Bloco Financeiro",
+                    "city": "Financeiro", "zipcode": "01003-200",
+                    "geo": {"lat": "4.9", "lng": "144.9"}},
+        "phone": "11-99002-0009", "website": "biancaalves.com",
+        "company": {"name": "Financeiro & Controladoria",
+                    "catchPhrase": "Controle total", "bs": "reduce costs"}
+    },
+
+    # ── Diretoria — Andar 2, lat≈75, lng≈5 ───────────────────────────────────
+    {
+        "id": 10, "name": "Roberto Almeida", "username": "robertoalmeida",
+        "email": "roberto.almeida@empresa.com",
+        "address": {"street": "Sala Executiva A", "suite": "Bloco Dir",
+                    "city": "Diretoria", "zipcode": "02001-300",
+                    "geo": {"lat": "73.2", "lng": "3.5"}},
+        "phone": "11-99003-0010", "website": "robertoalmeida.com",
+        "company": {"name": "Diretoria Executiva",
+                    "catchPhrase": "Visão estratégica", "bs": "lead market disruption"}
     },
     {
-        "id": 8,
-        "name": "Nicholas Runolfsdottir",
-        "username": "Maxime_Nienow",
-        "email": "Sherwood@rosamond.me",
-        "address": {
-            "street": "Ellsworth Summit",
-            "suite": "Suite 729",
-            "city": "Aliyaview",
-            "zipcode": "45169-3895",
-            "geo": {"lat": "-14.3990", "lng": "-120.7677"}
-        },
-        "phone": "586.493.6943 x140",
-        "website": "jacynthe.com",
-        "company": {"name": "Abernathy Group", "catchPhrase": "Implemented secondary concept", "bs": "e-enable extensible e-tailers"}
+        "id": 11, "name": "Glenna Reichert", "username": "glennareicher",
+        "email": "glenna.reichert@empresa.com",
+        "address": {"street": "Sala Executiva B", "suite": "Bloco Dir",
+                    "city": "Diretoria", "zipcode": "02001-300",
+                    "geo": {"lat": "77.3", "lng": "6.8"}},
+        "phone": "11-99003-0011", "website": "glennareicher.net",
+        "company": {"name": "Diretoria Executiva",
+                    "catchPhrase": "Resultados sustentáveis", "bs": "pivot to growth"}
     },
     {
-        "id": 9,
-        "name": "Glenna Reichert",
-        "username": "Delphine",
-        "email": "Chaim_McDermott@dana.io",
-        "address": {
-            "street": "Dayna Park",
-            "suite": "Suite 449",
-            "city": "Bartholomebury",
-            "zipcode": "76495-3109",
-            "geo": {"lat": "24.6463", "lng": "-168.8889"}
-        },
-        "phone": "(775)976-6794 x41206",
-        "website": "conrad.com",
-        "company": {"name": "Yost and Sons", "catchPhrase": "Switchable contextually-based project", "bs": "aggregate real-time technologies"}
+        "id": 12, "name": "Amir Khoury", "username": "amirkhoury",
+        "email": "amir.khoury@empresa.com",
+        "address": {"street": "Sala Executiva C", "suite": "Bloco Dir",
+                    "city": "Diretoria", "zipcode": "02001-300",
+                    "geo": {"lat": "75.5", "lng": "4.9"}},
+        "phone": "11-99003-0012", "website": "amirkhoury.exec",
+        "company": {"name": "Diretoria Executiva",
+                    "catchPhrase": "Inovação global", "bs": "scale international markets"}
+    },
+
+    # ── RH — Andar 2, lat≈75, lng≈75 ─────────────────────────────────────────
+    {
+        "id": 13, "name": "Sofia Rodrigues", "username": "sofiarodrigues",
+        "email": "sofia.rodrigues@empresa.com",
+        "address": {"street": "Mesa 1-RH", "suite": "Bloco RH",
+                    "city": "RH", "zipcode": "02002-400",
+                    "geo": {"lat": "73.4", "lng": "72.8"}},
+        "phone": "11-99004-0013", "website": "sofiarodrigues.hr",
+        "company": {"name": "Recursos Humanos",
+                    "catchPhrase": "Pessoas em primeiro lugar", "bs": "attract top talent"}
     },
     {
-        "id": 10,
-        "name": "Clementina DuBuque",
-        "username": "Moriah.Stanton",
-        "email": "Rey.Padberg@karina.biz",
-        "address": {
-            "street": "Kattie Turnpike",
-            "suite": "Suite 198",
-            "city": "Lebsackbury",
-            "zipcode": "31428-2261",
-            "geo": {"lat": "-38.2386", "lng": "57.2232"}
-        },
-        "phone": "024-648-3804",
-        "website": "ambrose.net",
-        "company": {"name": "Hoeger LLC", "catchPhrase": "Centralized empowering task-force", "bs": "target end-to-end models"}
+        "id": 14, "name": "Dennis Schulist", "username": "dennisschul",
+        "email": "dennis.schulist@empresa.com",
+        "address": {"street": "Mesa 2-RH", "suite": "Bloco RH",
+                    "city": "RH", "zipcode": "02002-400",
+                    "geo": {"lat": "77.1", "lng": "76.5"}},
+        "phone": "11-99004-0014", "website": "dennisschul.org",
+        "company": {"name": "Recursos Humanos",
+                    "catchPhrase": "Cultura organizacional", "bs": "build great teams"}
     },
     {
-        "id": 11,
-        "name": "Marcus Tanner",
-        "username": "mtanner",
-        "email": "marcus.tanner@april.biz",
-        "address": {
-            "street": "Sunrise Boulevard",
-            "suite": "Unit 12",
-            "city": "Gwenborough",
-            "zipcode": "92001-5543",
-            "geo": {"lat": "-36.8800", "lng": "80.9100"}
-        },
-        "phone": "1-555-820-3341",
-        "website": "mtanner.dev",
-        "company": {"name": "Romaguera-Crona", "catchPhrase": "Integrated holistic synergy", "bs": "leverage agile frameworks"}
+        "id": 15, "name": "Camila Ferreira", "username": "camilaferreira",
+        "email": "camila.ferreira@empresa.com",
+        "address": {"street": "Mesa 3-RH", "suite": "Bloco RH",
+                    "city": "RH", "zipcode": "02002-400",
+                    "geo": {"lat": "75.6", "lng": "74.2"}},
+        "phone": "11-99004-0015", "website": "camilaferreira.hr",
+        "company": {"name": "Recursos Humanos",
+                    "catchPhrase": "Treinamento eficaz", "bs": "develop human capital"}
+    },
+
+    # ── Comercial — Andar 2, lat≈75, lng≈145 ─────────────────────────────────
+    {
+        "id": 16, "name": "Kurtis Weissnat", "username": "kurtisweiss",
+        "email": "kurtis.weissnat@vendas.io",
+        "address": {"street": "Mesa 1-Com", "suite": "Bloco Comercial",
+                    "city": "Comercial", "zipcode": "02003-500",
+                    "geo": {"lat": "72.8", "lng": "143.1"}},
+        "phone": "11-99005-0016", "website": "kurtisweiss.io",
+        "company": {"name": "Comercial e Vendas",
+                    "catchPhrase": "Fechando negócios", "bs": "expand market share"}
     },
     {
-        "id": 12,
-        "name": "Sofia Pereira",
-        "username": "sofip",
-        "email": "sofia@techwave.io",
-        "address": {
-            "street": "Rua das Flores",
-            "suite": "Ap. 301",
-            "city": "Porto Alegre",
-            "zipcode": "90010-1200",
-            "geo": {"lat": "-30.0346", "lng": "-51.2177"}
-        },
-        "phone": "+55-51-99999-0012",
-        "website": "sofipereira.dev",
-        "company": {"name": "TechWave Solutions", "catchPhrase": "Disrupting the digital frontier", "bs": "scale cloud-native pipelines"}
+        "id": 17, "name": "Nicholas Souza", "username": "nicholassouza",
+        "email": "nicholas.souza@vendas.io",
+        "address": {"street": "Mesa 2-Com", "suite": "Bloco Comercial",
+                    "city": "Comercial", "zipcode": "02003-500",
+                    "geo": {"lat": "76.4", "lng": "147.2"}},
+        "phone": "11-99005-0017", "website": "nicholassouza.com",
+        "company": {"name": "Comercial e Vendas",
+                    "catchPhrase": "Metas superadas", "bs": "upsell premium tiers"}
     },
     {
-        "id": 13,
-        "name": "Amir Khoury",
-        "username": "amir_k",
-        "email": "amir.khoury@techwave.io",
-        "address": {
-            "street": "Al Rashid Street",
-            "suite": "Office 5B",
-            "city": "Dubai",
-            "zipcode": "90015-4421",
-            "geo": {"lat": "25.2048", "lng": "55.2708"}
-        },
-        "phone": "+971-50-555-0013",
-        "website": "amirkhoury.ae",
-        "company": {"name": "TechWave Solutions", "catchPhrase": "Disrupting the digital frontier", "bs": "scale cloud-native pipelines"}
+        "id": 18, "name": "Fernanda Lima", "username": "fernandalima",
+        "email": "fernanda.lima@vendas.io",
+        "address": {"street": "Mesa 3-Com", "suite": "Bloco Comercial",
+                    "city": "Comercial", "zipcode": "02003-500",
+                    "geo": {"lat": "74.1", "lng": "145.6"}},
+        "phone": "11-99005-0018", "website": "fernandalima.sales",
+        "company": {"name": "Comercial e Vendas",
+                    "catchPhrase": "CRM especialista", "bs": "convert leads to clients"}
     },
     {
-        "id": 14,
-        "name": "Yuki Tanaka",
-        "username": "yukitanaka",
-        "email": "yuki@dana.io",
-        "address": {
-            "street": "Shibuya Crossing",
-            "suite": "Floor 8",
-            "city": "Tokyo",
-            "zipcode": "76400-8801",
-            "geo": {"lat": "35.6762", "lng": "139.6503"}
-        },
-        "phone": "+81-3-5555-0014",
-        "website": "yukitanaka.jp",
-        "company": {"name": "Nexon Digital", "catchPhrase": "Pixel-perfect performance", "bs": "orchestrate immersive experiences"}
+        "id": 19, "name": "Diego Martins", "username": "diegomartins",
+        "email": "diego.martins@vendas.io",
+        "address": {"street": "Mesa 4-Com", "suite": "Bloco Comercial",
+                    "city": "Comercial", "zipcode": "02003-500",
+                    "geo": {"lat": "77.8", "lng": "144.3"}},
+        "phone": "11-99005-0019", "website": "diegomartins.io",
+        "company": {"name": "Comercial e Vendas",
+                    "catchPhrase": "Vendas consultivas", "bs": "drive B2B revenue"}
+    },
+
+    # ── Operações — Andar 3, lat≈145, lng≈75 ─────────────────────────────────
+    {
+        "id": 20, "name": "Chelsey Barbosa", "username": "chelseybarbosa",
+        "email": "chelsey.barbosa@vendas.io",
+        "address": {"street": "Mesa 1-Ops", "suite": "Bloco Operações",
+                    "city": "Operações", "zipcode": "03001-600",
+                    "geo": {"lat": "143.3", "lng": "73.4"}},
+        "phone": "11-99006-0020", "website": "chelseybarbosa.ops",
+        "company": {"name": "Operações & Logística",
+                    "catchPhrase": "Eficiência máxima", "bs": "optimize supply chain"}
     },
     {
-        "id": 15,
-        "name": "Bianca Ferreira",
-        "username": "biancaf",
-        "email": "bianca.ferreira@kory.org",
-        "address": {
-            "street": "Avenida Paulista",
-            "suite": "Conj. 74",
-            "city": "São Paulo",
-            "zipcode": "53900-0055",
-            "geo": {"lat": "-23.5614", "lng": "-46.6560"}
-        },
-        "phone": "+55-11-98888-0015",
-        "website": "biancaferreira.com.br",
-        "company": {"name": "Robel-Corkery", "catchPhrase": "Multi-tiered zero tolerance productivity", "bs": "transition cutting-edge web services"}
-    }
+        "id": 21, "name": "Ervin Howell", "username": "ervinhowell",
+        "email": "ervin.howell@vendas.io",
+        "address": {"street": "Mesa 2-Ops", "suite": "Bloco Operações",
+                    "city": "Operações", "zipcode": "03001-600",
+                    "geo": {"lat": "147.1", "lng": "77.2"}},
+        "phone": "11-99006-0021", "website": "ervinhowell.net",
+        "company": {"name": "Operações & Logística",
+                    "catchPhrase": "Processos ágeis", "bs": "lean manufacturing"}
+    },
+    {
+        "id": 22, "name": "Luciana Nascimento", "username": "luciananascimento",
+        "email": "luciana.nascimento@vendas.io",
+        "address": {"street": "Mesa 3-Ops", "suite": "Bloco Operações",
+                    "city": "Operações", "zipcode": "03001-600",
+                    "geo": {"lat": "145.6", "lng": "75.8"}},
+        "phone": "11-99006-0022", "website": "luciananascimento.com",
+        "company": {"name": "Operações & Logística",
+                    "catchPhrase": "KPIs no verde", "bs": "monitor operational metrics"}
+    },
+
+    # ── Jurídico — Andar 3, lat≈145, lng≈5 ───────────────────────────────────
+    {
+        "id": 23, "name": "Yuki Tanaka", "username": "yukitanaka",
+        "email": "yuki.tanaka@juridico.com",
+        "address": {"street": "Sala Jurídica A", "suite": "Bloco Jur",
+                    "city": "Jurídico", "zipcode": "03002-700",
+                    "geo": {"lat": "143.5", "lng": "3.2"}},
+        "phone": "11-99007-0023", "website": "yukitanaka.law",
+        "company": {"name": "Jurídico & Compliance",
+                    "catchPhrase": "Contratos sólidos", "bs": "minimize legal risk"}
+    },
+    {
+        "id": 24, "name": "Marcus Tanner", "username": "marcustanner",
+        "email": "marcus.tanner@juridico.com",
+        "address": {"street": "Sala Jurídica B", "suite": "Bloco Jur",
+                    "city": "Jurídico", "zipcode": "03002-700",
+                    "geo": {"lat": "147.2", "lng": "6.8"}},
+        "phone": "11-99007-0024", "website": "marcustanner.law",
+        "company": {"name": "Jurídico & Compliance",
+                    "catchPhrase": "Compliance total", "bs": "enforce regulatory standards"}
+    },
+    {
+        "id": 25, "name": "Ana Paula Gomes", "username": "anapaulagomes",
+        "email": "ana.gomes@juridico.com",
+        "address": {"street": "Sala Jurídica C", "suite": "Bloco Jur",
+                    "city": "Jurídico", "zipcode": "03002-700",
+                    "geo": {"lat": "145.1", "lng": "5.4"}},
+        "phone": "11-99007-0025", "website": "anapaulagomes.adv",
+        "company": {"name": "Jurídico & Compliance",
+                    "catchPhrase": "Direito empresarial", "bs": "protect intellectual property"}
+    },
 ]
