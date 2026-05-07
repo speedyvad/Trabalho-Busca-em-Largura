@@ -211,11 +211,11 @@ export const GraphCanvas: React.FC<Props> = ({ nodes, edges, exposureMap, source
     const sNodes = simNodesRef.current;
     if (!sNodes.length) return;
 
-    const REPULSION  = 4800;
-    const SPRING_K   = 0.008;
-    const SPRING_LEN = 100;
-    const CLUSTER_K  = 0.14;
-    const DAMPING    = 0.76;
+    const REPULSION  = 5200;
+    const SPRING_K   = 0.006;
+    const SPRING_LEN = 110;
+    const CLUSTER_K  = 0.030;
+    const DAMPING    = 0.74;
 
     for (let i = 0; i < sNodes.length; i++) {
       for (let j = i + 1; j < sNodes.length; j++) {
@@ -431,7 +431,13 @@ export const GraphCanvas: React.FC<Props> = ({ nodes, edges, exposureMap, source
   }, [hitTest]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleMouseUp = useCallback(() => {
-    if (dragRef.current) { dragRef.current.node.fx = null; dragRef.current.node.fy = null; dragRef.current = null; }
+    if (dragRef.current) {
+      const n = dragRef.current.node;
+      // Zero velocity so node stays where dropped instead of springing back
+      n.vx = 0; n.vy = 0;
+      n.fx = null; n.fy = null;
+      dragRef.current = null;
+    }
   }, []);
 
   const handleMouseLeave = useCallback(() => {
