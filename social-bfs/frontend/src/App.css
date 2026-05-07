@@ -189,7 +189,6 @@ code { font-family: var(--font-mono); font-size: 0.85em; color: var(--accent); }
   border-radius: var(--radius-md);
   padding: 16px;
   position: relative;
-  overflow: hidden;
 }
 .control-card::before {
   content: '';
@@ -198,6 +197,7 @@ code { font-family: var(--font-mono); font-size: 0.85em; color: var(--accent); }
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
   opacity: 0.6;
+  pointer-events: none;
 }
 .section-title {
   font-family: var(--font-mono);
@@ -229,8 +229,8 @@ code { font-family: var(--font-mono); font-size: 0.85em; color: var(--accent); }
 
 .select-input {
   width: 100%;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
+  background: #071b2e;
+  border: 1px solid rgba(0, 196, 167, 0.28);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-family: var(--font-body);
@@ -246,7 +246,7 @@ code { font-family: var(--font-mono); font-size: 0.85em; color: var(--accent); }
   padding-right: 30px;
 }
 .select-input:focus { border-color: var(--accent); }
-.select-input option { background: var(--bg-card); }
+.select-input option { background: #071b2e; }
 
 /* ── Botões ───────────────────────────────────────────────── */
 .btn-search {
@@ -307,7 +307,7 @@ code { font-family: var(--font-mono); font-size: 0.85em; color: var(--accent); }
   appearance: none;
   height: 4px;
   border-radius: 2px;
-  background: var(--border);
+  background: rgba(0, 196, 167, 0.22);
   outline: none;
   cursor: pointer;
 }
@@ -349,7 +349,6 @@ code { font-family: var(--font-mono); font-size: 0.85em; color: var(--accent); }
   padding: 16px;
   animation: fadeIn 0.4s ease;
   position: relative;
-  overflow: hidden;
 }
 .result-card::before {
   content: '';
@@ -358,6 +357,7 @@ code { font-family: var(--font-mono); font-size: 0.85em; color: var(--accent); }
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(255,61,87,0.5), transparent);
   opacity: 0.7;
+  pointer-events: none;
 }
 .loading-card {
   display: flex;
@@ -522,7 +522,6 @@ code { font-family: var(--font-mono); font-size: 0.85em; color: var(--accent); }
   border-radius: var(--radius-md);
   padding: 16px;
   position: relative;
-  overflow: hidden;
 }
 .stats-panel::before {
   content: '';
@@ -531,6 +530,7 @@ code { font-family: var(--font-mono); font-size: 0.85em; color: var(--accent); }
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
   opacity: 0.6;
+  pointer-events: none;
 }
 .stats-title {
   font-family: var(--font-mono);
@@ -599,7 +599,6 @@ code { font-family: var(--font-mono); font-size: 0.85em; color: var(--accent); }
   border-radius: var(--radius-md);
   padding: 16px;
   position: relative;
-  overflow: hidden;
 }
 .legend-card::before {
   content: '';
@@ -608,6 +607,7 @@ code { font-family: var(--font-mono); font-size: 0.85em; color: var(--accent); }
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
   opacity: 0.6;
+  pointer-events: none;
 }
 .legend-title {
   font-family: var(--font-mono);
