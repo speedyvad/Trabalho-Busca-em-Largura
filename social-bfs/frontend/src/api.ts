@@ -77,28 +77,30 @@ export interface FarthestUsersResult {
 
 // ── Chamadas à API ────────────────────────────────────────────────────────────
 
-export const fetchUsers = async (): Promise<User[]> => {
-  const res = await api.get("/users");
+export const fetchUsers = async (limit: number = 15): Promise<User[]> => {
+  const res = await api.get("/users", { params: { limit } });
   return res.data.users;
 };
 
-export const fetchGraph = async (): Promise<GraphData> => {
-  const res = await api.get("/graph");
+export const fetchGraph = async (limit: number = 15): Promise<GraphData> => {
+  const res = await api.get("/graph", { params: { limit } });
   return res.data;
 };
 
 export const findShortestPath = async (
   sourceId: number,
-  targetId: number
+  targetId: number,
+  limit: number = 15
 ): Promise<ShortestPathResult> => {
   const res = await api.post("/shortest-path", {
     source_id: sourceId,
     target_id: targetId,
+    limit,
   });
   return res.data;
 };
 
-export const findFarthestUsers = async (): Promise<FarthestUsersResult> => {
-  const res = await api.get("/farthest-users");
+export const findFarthestUsers = async (limit: number = 15): Promise<FarthestUsersResult> => {
+  const res = await api.get("/farthest-users", { params: { limit } });
   return res.data;
 };

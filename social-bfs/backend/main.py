@@ -5,12 +5,12 @@ REDE SOCIAL BFS - Backend FastAPI
 Implementação do algoritmo BFS (Busca em Largura) para encontrar o caminho
 mais curto entre usuários em uma rede social simulada.
 
-Fonte de dados: https://jsonplaceholder.typicode.com/users
+Fonte de dados: mock_data.py (15 usuários) com fallback para JSONPlaceholder.
 Autor: Projeto Acadêmico - Algoritmos em Grafos
 =============================================================================
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import httpx
@@ -23,7 +23,7 @@ from typing import Optional
 app = FastAPI(
     title="Social Network BFS API",
     description="API para análise de grafos em redes sociais usando BFS",
-    version="1.0.0"
+    version="2.0.0"
 )
 
 app.add_middleware(
@@ -40,6 +40,7 @@ app.add_middleware(
 class PathRequest(BaseModel):
     source_id: int
     target_id: int
+    limit: Optional[int] = 15
 
 
 # ─────────────────────────────────────────────
@@ -72,9 +73,9 @@ def build_graph(users: list) -> dict:
 
     Retorna: dict { id_usuario: [lista de vizinhos] }
     """
-    graph = {u["id"]: [] for u in users}
+    graph: dict = {u["id"]: [] for u in users}
 
-    def add_edge(a, b):
+    def add_edge(a: int, b: int) -> None:
         if b not in graph[a]:
             graph[a].append(b)
         if a not in graph[b]:
@@ -139,8 +140,8 @@ def bfs(graph: dict, source: int, target: int):
     if source == target:
         return [source]
 
-    visited = {source}
-    queue = deque([(source, [source])])
+    visited: set = {source}
+    queue: deque = deque([(source, [source])])
 
     while queue:
         current, path = queue.popleft()
@@ -157,19 +158,28 @@ def bfs(graph: dict, source: int, target: int):
 async def fetch_users() -> list:
     """
     Busca usuários da API pública JSONPlaceholder.
-    Em ambientes sem acesso externo, utiliza dados mock equivalentes.
+    Em ambientes sem acesso externo, utiliza os 15 dados mock.
     """
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             resp = await client.get(
                 "https://jsonplaceholder.typicode.com/users",
-                headers={"User-Agent": "SocialBFS/1.0"}
+                headers={"User-Agent": "SocialBFS/2.0"}
             )
             resp.raise_for_status()
-            return resp.json()
+            data = resp.json()
+            # JSONPlaceholder só tem 10 usuários; complementar com mock para ter 15
+            from mock_data import MOCK_USERS
+            existing_ids = {u["id"] for u in data}
+            extra = [u for u in MOCK_USERS if u["id"] not in existing_ids]
+            return data + extra
     except Exception:
         from mock_data import MOCK_USERS
         return MOCK_USERS
+
+
+def clamp_limit(limit: int) -> int:
+    return max(3, min(15, limit))
 
 
 # ─────────────────────────────────────────────
@@ -178,13 +188,14 @@ async def fetch_users() -> list:
 
 @app.get("/")
 async def root():
-    return {"status": "online", "message": "Social Network BFS API online"}
+    return {"status": "online", "message": "Social Network BFS API v2 online"}
 
 
 @app.get("/users")
-async def get_users():
-    """Lista todos os usuários da rede social."""
-    users = await fetch_users()
+async def get_users(limit: int = Query(default=15, ge=3, le=15)):
+    """Lista usuários da rede social. O parâmetro limit filtra os primeiros N usuários."""
+    all_users = await fetch_users()
+    users = all_users[:clamp_limit(limit)]
     return {
         "count": len(users),
         "users": [
@@ -205,18 +216,21 @@ async def get_users():
 
 
 @app.get("/graph")
-async def get_graph():
+async def get_graph(limit: int = Query(default=15, ge=3, le=15)):
     """
     Retorna a estrutura completa do grafo:
     - nodes: lista de vértices com metadados
     - edges: lista de arestas (pares de IDs)
     - stats: estatísticas gerais do grafo
+
+    O parâmetro limit define quantos usuários incluir no grafo.
     """
-    users = await fetch_users()
+    all_users = await fetch_users()
+    users = all_users[:clamp_limit(limit)]
     graph = build_graph(users)
 
     edges = []
-    seen = set()
+    seen: set = set()
     for uid, neighbors in graph.items():
         for nid in neighbors:
             edge_key = tuple(sorted([uid, nid]))
@@ -257,23 +271,24 @@ async def shortest_path(req: PathRequest):
     """
     Encontra o caminho mais curto entre dois usuários usando BFS.
 
-    Body JSON: { "source_id": 1, "target_id": 8 }
+    Body JSON: { "source_id": 1, "target_id": 8, "limit": 15 }
 
     Retorna caminho, detalhes de cada nó e número de saltos.
     """
-    users = await fetch_users()
+    all_users = await fetch_users()
+    users = all_users[:clamp_limit(req.limit or 15)]
     user_map = {u["id"]: u for u in users}
     valid_ids = set(user_map.keys())
 
     if req.source_id not in valid_ids:
         raise HTTPException(
             status_code=404,
-            detail=f"Usuário com ID {req.source_id} não encontrado."
+            detail=f"Usuário com ID {req.source_id} não encontrado no grafo atual."
         )
     if req.target_id not in valid_ids:
         raise HTTPException(
             status_code=404,
-            detail=f"Usuário com ID {req.target_id} não encontrado."
+            detail=f"Usuário com ID {req.target_id} não encontrado no grafo atual."
         )
 
     graph = build_graph(users)
@@ -310,20 +325,21 @@ async def shortest_path(req: PathRequest):
 
 
 @app.get("/farthest-users")
-async def farthest_users():
+async def farthest_users(limit: int = Query(default=15, ge=3, le=15)):
     """
     Calcula o diâmetro do grafo: encontra os dois usuários mais distantes.
 
     Executa BFS a partir de cada vértice e mantém o maior caminho.
     Complexidade: O(V x (V + E))
     """
-    users = await fetch_users()
+    all_users = await fetch_users()
+    users = all_users[:clamp_limit(limit)]
     graph = build_graph(users)
     user_map = {u["id"]: u for u in users}
     ids = list(graph.keys())
 
     max_dist = -1
-    farthest_path = []
+    farthest_path: list = []
     farthest_pair = (None, None)
 
     for i, source in enumerate(ids):

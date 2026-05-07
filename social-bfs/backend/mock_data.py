@@ -1,6 +1,6 @@
 """
 Dados mock que replicam exatamente a estrutura de https://jsonplaceholder.typicode.com/users
-Em produção, substituir fetch_users() por uma chamada HTTP real a essa URL.
+15 usuários com dados diversificados: cidades, empresas, e-mails, CEPs e coordenadas variados.
 """
 
 MOCK_USERS = [
@@ -77,7 +77,7 @@ MOCK_USERS = [
             "street": "Skiles Walks",
             "suite": "Suite 351",
             "city": "Roscoeview",
-            "zipcode": "33263",
+            "zipcode": "33263-8891",
             "geo": {"lat": "-31.8129", "lng": "62.5342"}
         },
         "phone": "(254)954-1289",
@@ -86,7 +86,7 @@ MOCK_USERS = [
     },
     {
         "id": 6,
-        "name": "Mrs. Dennis Schulist",
+        "name": "Dennis Schulist",
         "username": "Leopoldo_Corkery",
         "email": "Karley_Dach@jasper.info",
         "address": {
@@ -118,14 +118,14 @@ MOCK_USERS = [
     },
     {
         "id": 8,
-        "name": "Nicholas Runolfsdottir V",
+        "name": "Nicholas Runolfsdottir",
         "username": "Maxime_Nienow",
         "email": "Sherwood@rosamond.me",
         "address": {
             "street": "Ellsworth Summit",
             "suite": "Suite 729",
             "city": "Aliyaview",
-            "zipcode": "45169",
+            "zipcode": "45169-3895",
             "geo": {"lat": "-14.3990", "lng": "-120.7677"}
         },
         "phone": "586.493.6943 x140",
@@ -163,5 +163,85 @@ MOCK_USERS = [
         "phone": "024-648-3804",
         "website": "ambrose.net",
         "company": {"name": "Hoeger LLC", "catchPhrase": "Centralized empowering task-force", "bs": "target end-to-end models"}
+    },
+    {
+        "id": 11,
+        "name": "Marcus Tanner",
+        "username": "mtanner",
+        "email": "marcus.tanner@april.biz",
+        "address": {
+            "street": "Sunrise Boulevard",
+            "suite": "Unit 12",
+            "city": "Gwenborough",
+            "zipcode": "92001-5543",
+            "geo": {"lat": "-36.8800", "lng": "80.9100"}
+        },
+        "phone": "1-555-820-3341",
+        "website": "mtanner.dev",
+        "company": {"name": "Romaguera-Crona", "catchPhrase": "Integrated holistic synergy", "bs": "leverage agile frameworks"}
+    },
+    {
+        "id": 12,
+        "name": "Sofia Pereira",
+        "username": "sofip",
+        "email": "sofia@techwave.io",
+        "address": {
+            "street": "Rua das Flores",
+            "suite": "Ap. 301",
+            "city": "Porto Alegre",
+            "zipcode": "90010-1200",
+            "geo": {"lat": "-30.0346", "lng": "-51.2177"}
+        },
+        "phone": "+55-51-99999-0012",
+        "website": "sofipereira.dev",
+        "company": {"name": "TechWave Solutions", "catchPhrase": "Disrupting the digital frontier", "bs": "scale cloud-native pipelines"}
+    },
+    {
+        "id": 13,
+        "name": "Amir Khoury",
+        "username": "amir_k",
+        "email": "amir.khoury@techwave.io",
+        "address": {
+            "street": "Al Rashid Street",
+            "suite": "Office 5B",
+            "city": "Dubai",
+            "zipcode": "90015-4421",
+            "geo": {"lat": "25.2048", "lng": "55.2708"}
+        },
+        "phone": "+971-50-555-0013",
+        "website": "amirkhoury.ae",
+        "company": {"name": "TechWave Solutions", "catchPhrase": "Disrupting the digital frontier", "bs": "scale cloud-native pipelines"}
+    },
+    {
+        "id": 14,
+        "name": "Yuki Tanaka",
+        "username": "yukitanaka",
+        "email": "yuki@dana.io",
+        "address": {
+            "street": "Shibuya Crossing",
+            "suite": "Floor 8",
+            "city": "Tokyo",
+            "zipcode": "76400-8801",
+            "geo": {"lat": "35.6762", "lng": "139.6503"}
+        },
+        "phone": "+81-3-5555-0014",
+        "website": "yukitanaka.jp",
+        "company": {"name": "Nexon Digital", "catchPhrase": "Pixel-perfect performance", "bs": "orchestrate immersive experiences"}
+    },
+    {
+        "id": 15,
+        "name": "Bianca Ferreira",
+        "username": "biancaf",
+        "email": "bianca.ferreira@kory.org",
+        "address": {
+            "street": "Avenida Paulista",
+            "suite": "Conj. 74",
+            "city": "São Paulo",
+            "zipcode": "53900-0055",
+            "geo": {"lat": "-23.5614", "lng": "-46.6560"}
+        },
+        "phone": "+55-11-98888-0015",
+        "website": "biancaferreira.com.br",
+        "company": {"name": "Robel-Corkery", "catchPhrase": "Multi-tiered zero tolerance productivity", "bs": "transition cutting-edge web services"}
     }
 ]

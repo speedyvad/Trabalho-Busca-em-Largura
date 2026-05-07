@@ -27,27 +27,50 @@ const App: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [userLimit, setUserLimit] = useState(15);
+
+  const loadData = useCallback(async (limit: number) => {
+    try {
+      const [usersData, graph] = await Promise.all([
+        fetchUsers(limit),
+        fetchGraph(limit),
+      ]);
+      setUsers(usersData);
+      setGraphData(graph);
+      // Reset selections to valid IDs within new limit
+      setSourceId((prev) => {
+        const valid = usersData.find((u) => u.id === prev);
+        return valid ? prev : usersData[0]?.id ?? null;
+      });
+      setTargetId((prev) => {
+        const valid = usersData.find((u) => u.id === prev);
+        return valid ? prev : usersData[usersData.length - 1]?.id ?? null;
+      });
+      setPathResult(null);
+      setHighlightPath([]);
+    } catch (err) {
+      setGlobalError(
+        "Não foi possível conectar ao backend. Certifique-se de que o servidor FastAPI está rodando em http://localhost:8000"
+      );
+    }
+  }, []);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const [usersData, graph] = await Promise.all([fetchUsers(), fetchGraph()]);
-        setUsers(usersData);
-        setGraphData(graph);
-        if (usersData.length >= 2) {
-          setSourceId(usersData[0].id);
-          setTargetId(usersData[usersData.length - 1].id);
-        }
-      } catch (err) {
-        setGlobalError(
-          "Não foi possível conectar ao backend. Certifique-se de que o servidor FastAPI está rodando em http://localhost:8000"
-        );
-      } finally {
-        setIsLoading(false);
-      }
+    const init = async () => {
+      await loadData(15);
+      setIsLoading(false);
     };
-    load();
-  }, []);
+    init();
+  }, [loadData]);
+
+  const handleLimitChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = Number(e.target.value);
+      setUserLimit(val);
+      loadData(val);
+    },
+    [loadData]
+  );
 
   const handleSearch = useCallback(async () => {
     if (sourceId === null || targetId === null) return;
@@ -55,7 +78,7 @@ const App: React.FC = () => {
     setPathResult(null);
     setHighlightPath([]);
     try {
-      const result = await findShortestPath(sourceId, targetId);
+      const result = await findShortestPath(sourceId, targetId, userLimit);
       setPathResult(result);
       if (result.exists) {
         setTimeout(() => setHighlightPath(result.path), 300);
@@ -66,7 +89,7 @@ const App: React.FC = () => {
     } finally {
       setIsSearching(false);
     }
-  }, [sourceId, targetId]);
+  }, [sourceId, targetId, userLimit]);
 
   const handleFarthestFound = useCallback((result: FarthestUsersResult) => {
     setSourceId(result.user1.id);
@@ -114,6 +137,29 @@ const App: React.FC = () => {
 
       <main className="app-main">
         <aside className="sidebar">
+          {/* Slider de número de usuários */}
+          <section className="control-card">
+            <h2 className="section-title">
+              <span>⚙</span> Configuração do Grafo
+            </h2>
+            <div className="field-group">
+              <label className="field-label">
+                Número de usuários no grafo
+              </label>
+              <div className="slider-row">
+                <input
+                  type="range"
+                  className="slider-input"
+                  min={3}
+                  max={15}
+                  value={userLimit}
+                  onChange={handleLimitChange}
+                />
+                <span className="slider-value">{userLimit} usuários</span>
+              </div>
+            </div>
+          </section>
+
           <section className="control-card">
             <h2 className="section-title">
               <span>🔍</span> Encontrar Caminho
@@ -126,7 +172,11 @@ const App: React.FC = () => {
               <select
                 className="select-input"
                 value={sourceId ?? ""}
-                onChange={(e) => { setSourceId(Number(e.target.value)); setPathResult(null); setHighlightPath([]); }}
+                onChange={(e) => {
+                  setSourceId(Number(e.target.value));
+                  setPathResult(null);
+                  setHighlightPath([]);
+                }}
               >
                 <option value="" disabled>Selecione...</option>
                 {users.map((u) => (
@@ -144,7 +194,11 @@ const App: React.FC = () => {
               <select
                 className="select-input"
                 value={targetId ?? ""}
-                onChange={(e) => { setTargetId(Number(e.target.value)); setPathResult(null); setHighlightPath([]); }}
+                onChange={(e) => {
+                  setTargetId(Number(e.target.value));
+                  setPathResult(null);
+                  setHighlightPath([]);
+                }}
               >
                 <option value="" disabled>Selecione...</option>
                 {users.map((u) => (
@@ -163,15 +217,19 @@ const App: React.FC = () => {
           </section>
 
           <PathResult result={pathResult} isLoading={isSearching} />
-          <StatsPanel graphData={graphData} onFarthestFound={handleFarthestFound} />
+          <StatsPanel
+            graphData={graphData}
+            userLimit={userLimit}
+            onFarthestFound={handleFarthestFound}
+          />
 
           <section className="legend-card">
             <h3 className="legend-title">Legenda</h3>
             <div className="legend-list">
-              <div className="legend-row"><span className="leg-dot" style={{background:"#22c55e"}} />Origem</div>
-              <div className="legend-row"><span className="leg-dot" style={{background:"#ef4444"}} />Destino</div>
-              <div className="legend-row"><span className="leg-dot" style={{background:"#f59e0b"}} />Caminho BFS</div>
-              <div className="legend-row"><span className="leg-dot" style={{background:"#1e293b",border:"2px solid #38bdf8"}} />Outros nós</div>
+              <div className="legend-row"><span className="leg-dot" style={{ background: "#22c55e" }} />Origem</div>
+              <div className="legend-row"><span className="leg-dot" style={{ background: "#ef4444" }} />Destino</div>
+              <div className="legend-row"><span className="leg-dot" style={{ background: "#f59e0b" }} />Caminho BFS</div>
+              <div className="legend-row"><span className="leg-dot" style={{ background: "#1e293b", border: "2px solid #38bdf8" }} />Outros nós</div>
             </div>
           </section>
         </aside>
@@ -212,14 +270,14 @@ const App: React.FC = () => {
             <div className="ex-card">
               <div className="ex-icon">🔗</div>
               <h3>Frontend ↔ Backend</h3>
-              <p>O React consome endpoints REST do <strong>FastAPI</strong> via axios. O frontend envia <code>source_id</code> e <code>target_id</code>, o backend executa BFS em Python e retorna o caminho como JSON, destacado no grafo <strong>D3.js</strong>.</p>
+              <p>O React consome endpoints REST do <strong>FastAPI</strong> via axios. O frontend envia <code>source_id</code> e <code>target_id</code>, o backend executa BFS em Python puro e retorna o caminho como JSON, destacado no grafo via <strong>Canvas API</strong>.</p>
             </div>
           </div>
         </div>
       </section>
 
       <footer className="app-footer">
-        Social BFS · Projeto Acadêmico · Algoritmos em Grafos · FastAPI + React + D3.js
+        Social BFS · Projeto Acadêmico · Algoritmos em Grafos · FastAPI + React + Canvas API
       </footer>
     </div>
   );
