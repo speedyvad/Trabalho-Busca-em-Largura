@@ -255,10 +255,15 @@ export const GraphCanvas: React.FC<Props> = ({ nodes, edges, exposureMap, source
     if (p) applySize(p.clientWidth, p.clientHeight);
 
     const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { width, height } = entry.contentRect;
-        applySize(Math.round(width), Math.round(height));
-      }
+      // requestAnimationFrame breaks the synchronous loop:
+      // sidebar growing after spread result renders causes layout reflow
+      // → canvas shrinks → ResizeObserver fires → canvas.width set → reflow → loop
+      requestAnimationFrame(() => {
+        for (const entry of entries) {
+          const { width, height } = entry.contentRect;
+          applySize(Math.round(width), Math.round(height));
+        }
+      });
     });
     if (canvas.parentElement) ro.observe(canvas.parentElement);
     return () => ro.disconnect();
