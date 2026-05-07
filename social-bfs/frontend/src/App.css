@@ -184,10 +184,20 @@ code { font-family: var(--font-mono); font-size: 0.85em; color: var(--accent); }
 
 /* ── Cards de controle ────────────────────────────────────── */
 .control-card {
-  background: var(--bg-card);
+  background: linear-gradient(160deg, #0e2a4a 0%, var(--bg-card) 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.control-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 16px; right: 16px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+  opacity: 0.6;
 }
 .section-title {
   font-family: var(--font-mono);
@@ -333,11 +343,21 @@ code { font-family: var(--font-mono); font-size: 0.85em; color: var(--accent); }
 
 /* ── Resultado BFS — SpreadResult ─────────────────────────── */
 .result-card {
-  background: var(--bg-card);
+  background: linear-gradient(160deg, #0e2a4a 0%, var(--bg-card) 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 16px;
   animation: fadeIn 0.4s ease;
+  position: relative;
+  overflow: hidden;
+}
+.result-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 16px; right: 16px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,61,87,0.5), transparent);
+  opacity: 0.7;
 }
 .loading-card {
   display: flex;
@@ -438,6 +458,11 @@ code { font-family: var(--font-mono); font-size: 0.85em; color: var(--accent); }
   border-radius: var(--radius-sm);
   padding: 8px 10px;
   animation: slideIn 0.3s ease both;
+  transition: border-color 0.2s, background 0.2s;
+}
+.path-node:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(255,129,66,0.35);
 }
 .node-avatar {
   flex-shrink: 0;
@@ -492,10 +517,20 @@ code { font-family: var(--font-mono); font-size: 0.85em; color: var(--accent); }
 
 /* ── StatsPanel ───────────────────────────────────────────── */
 .stats-panel {
-  background: var(--bg-card);
+  background: linear-gradient(160deg, #0e2a4a 0%, var(--bg-card) 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.stats-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 16px; right: 16px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+  opacity: 0.6;
 }
 .stats-title {
   font-family: var(--font-mono);
@@ -559,10 +594,20 @@ code { font-family: var(--font-mono); font-size: 0.85em; color: var(--accent); }
 
 /* ── Legenda ──────────────────────────────────────────────── */
 .legend-card {
-  background: var(--bg-card);
+  background: linear-gradient(160deg, #0e2a4a 0%, var(--bg-card) 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.legend-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 16px; right: 16px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+  opacity: 0.6;
 }
 .legend-title {
   font-family: var(--font-mono);
@@ -594,7 +639,13 @@ code { font-family: var(--font-mono); font-size: 0.85em; color: var(--accent); }
   color: var(--text-primary);
 }
 .graph-hint { font-size: 0.7rem; color: var(--text-muted); }
-.graph-container { flex: 1; min-height: 500px; position: relative; overflow: hidden; }
+.graph-container {
+  flex: 1;
+  min-height: 500px;
+  position: relative;
+  overflow: hidden;
+  background: #071221;
+}
 
 /* ── Explainer ────────────────────────────────────────────── */
 .explainer {
