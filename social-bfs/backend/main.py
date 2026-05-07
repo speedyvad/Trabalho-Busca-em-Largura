@@ -1,12 +1,12 @@
 """
 =============================================================================
-REDE SOCIAL BFS - Backend FastAPI
+OUTBREAK TRACKER — Backend FastAPI
 =============================================================================
-Implementação do algoritmo BFS (Busca em Largura) para encontrar o caminho
-mais curto entre usuários em uma rede social simulada.
+Rastreamento de surtos corporativos usando BFS (Busca em Largura).
+Dado um Paciente Zero, mapeia todos os colaboradores em risco e o grau
+de exposição de cada um no grafo de contatos do escritório.
 
-Fonte de dados: mock_data.py (15 usuários) com fallback para JSONPlaceholder.
-Autor: Projeto Acadêmico - Algoritmos em Grafos
+Autor: Projeto Acadêmico — Algoritmos em Grafos
 =============================================================================
 """
 
@@ -18,12 +18,12 @@ from collections import deque
 from typing import Optional
 
 # ─────────────────────────────────────────────
-# Inicialização da aplicação
+# Inicialização
 # ─────────────────────────────────────────────
 app = FastAPI(
-    title="Social Network BFS API",
-    description="API para análise de grafos em redes sociais usando BFS",
-    version="2.0.0"
+    title="Outbreak Tracker API",
+    description="Rastreamento de surtos corporativos com BFS puro em Python",
+    version="3.0.0"
 )
 
 app.add_middleware(
@@ -35,12 +35,12 @@ app.add_middleware(
 
 
 # ─────────────────────────────────────────────
-# Modelo Pydantic para requisição
+# Modelo Pydantic
 # ─────────────────────────────────────────────
 class PathRequest(BaseModel):
     source_id: int
     target_id: int
-    limit: Optional[int] = 15
+    limit: Optional[int] = 25
 
 
 # ─────────────────────────────────────────────
@@ -48,7 +48,7 @@ class PathRequest(BaseModel):
 # ─────────────────────────────────────────────
 
 def geo_distance(u1: dict, u2: dict) -> float:
-    """Distância euclidiana simples entre dois pontos geográficos."""
+    """Distância euclidiana entre dois pontos geográficos (proxy de proximidade física)."""
     try:
         lat1 = float(u1["address"]["geo"]["lat"])
         lng1 = float(u1["address"]["geo"]["lng"])
@@ -61,17 +61,15 @@ def geo_distance(u1: dict, u2: dict) -> float:
 
 def build_graph(users: list) -> dict:
     """
-    Constrói o grafo de amizades a partir da lista de usuários.
+    Constrói o grafo de contatos do escritório.
 
-    Regras de conexão simulam relacionamentos reais em redes sociais:
-      1. Mesma cidade                   -> vizinhos / locais
-      2. Mesma empresa                  -> colegas de trabalho
-      3. Mesmo prefixo de CEP (2 dig.)  -> bairro próximo
-      4. Mesmo host de e-mail           -> comunidade online
-      5. Proximidade geográfica < 80    -> distância euclidiana lat/lng
-      6. IDs próximos (diff <= 2)       -> "pessoas que você talvez conheça"
-
-    Retorna: dict { id_usuario: [lista de vizinhos] }
+    Regras de conexão (simulam contatos reais):
+      1. Mesma sala (city)                   — colegas de sala
+      2. Mesmo departamento (company)        — mesma equipe
+      3. Mesmo andar (prefixo CEP 2 dígitos) — cruzam no corredor
+      4. Mesmo sistema/domínio de e-mail     — reuniões de área
+      5. Proximidade física < 80 u           — salas adjacentes
+      6. IDs próximos (|diff| ≤ 2)           — contratados juntos
     """
     graph: dict = {u["id"]: [] for u in users}
 
@@ -86,31 +84,24 @@ def build_graph(users: list) -> dict:
             u1, u2 = users[i], users[j]
             connected = False
 
-            # Regra 1: Mesma cidade
             if u1["address"]["city"] == u2["address"]["city"]:
                 connected = True
-
-            # Regra 2: Mesma empresa
             if u1["company"]["name"] == u2["company"]["name"]:
                 connected = True
 
-            # Regra 3: Mesmo prefixo de CEP (2 primeiros dígitos)
             zip1 = u1["address"]["zipcode"].replace("-", "")[:2]
             zip2 = u2["address"]["zipcode"].replace("-", "")[:2]
             if zip1 == zip2:
                 connected = True
 
-            # Regra 4: Mesmo domínio base de e-mail
             host1 = u1["email"].split("@")[-1].split(".")[0]
             host2 = u2["email"].split("@")[-1].split(".")[0]
             if host1 == host2:
                 connected = True
 
-            # Regra 5: Proximidade geográfica (distância euclidiana lat/lng)
             if geo_distance(u1, u2) < 80:
                 connected = True
 
-            # Regra 6: IDs próximos (simulando sugestões da plataforma)
             if abs(u1["id"] - u2["id"]) <= 2:
                 connected = True
 
@@ -122,20 +113,9 @@ def build_graph(users: list) -> dict:
 
 def bfs(graph: dict, source: int, target: int):
     """
-    Algoritmo de Busca em Largura (BFS) para caminho mais curto.
-
-    Como funciona:
-      1. Inicia uma fila com o nó de origem
-      2. A cada iteração, retira o primeiro elemento da fila (FIFO)
-      3. Verifica todos os seus vizinhos não visitados
-      4. Se encontrar o destino, retorna o caminho reconstituído
-      5. Caso contrário, adiciona os vizinhos à fila e continua
-
-    Garantia: o BFS sempre encontra o caminho com MENOS arestas.
-    Complexidade de tempo: O(V + E)
-    Complexidade de espaço: O(V)
-
-    Retorna: lista de IDs do caminho, ou None se desconectado.
+    BFS ponto-a-ponto: caminho mais curto entre dois nós.
+    Retorna lista de IDs ou None se desconectados.
+    Complexidade: O(V + E)
     """
     if source == target:
         return [source]
@@ -155,20 +135,35 @@ def bfs(graph: dict, source: int, target: int):
     return None
 
 
+def bfs_all(graph: dict, source: int) -> dict:
+    """
+    BFS completo a partir de uma origem: retorna {node_id: distância}.
+    Usado para mapear o alcance total do Paciente Zero.
+    Complexidade: O(V + E)
+    """
+    distances: dict = {source: 0}
+    queue: deque = deque([source])
+
+    while queue:
+        current = queue.popleft()
+        for neighbor in graph.get(current, []):
+            if neighbor not in distances:
+                distances[neighbor] = distances[current] + 1
+                queue.append(neighbor)
+
+    return distances
+
+
 async def fetch_users() -> list:
-    """
-    Busca usuários da API pública JSONPlaceholder.
-    Em ambientes sem acesso externo, utiliza os 15 dados mock.
-    """
+    """Tenta JSONPlaceholder; em caso de falha usa os 25 mock users."""
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             resp = await client.get(
                 "https://jsonplaceholder.typicode.com/users",
-                headers={"User-Agent": "SocialBFS/2.0"}
+                headers={"User-Agent": "OutbreakTracker/3.0"}
             )
             resp.raise_for_status()
             data = resp.json()
-            # JSONPlaceholder só tem 10 usuários; complementar com mock para ter 15
             from mock_data import MOCK_USERS
             existing_ids = {u["id"] for u in data}
             extra = [u for u in MOCK_USERS if u["id"] not in existing_ids]
@@ -179,7 +174,20 @@ async def fetch_users() -> list:
 
 
 def clamp_limit(limit: int) -> int:
-    return max(3, min(15, limit))
+    return max(3, min(25, limit))
+
+
+def user_to_node(u: dict, degree: int) -> dict:
+    return {
+        "id": u["id"],
+        "name": u["name"],
+        "username": u["username"],
+        "city": u["address"]["city"],
+        "company": u["company"]["name"],
+        "degree": degree,
+        "lat": float(u["address"]["geo"]["lat"]),
+        "lng": float(u["address"]["geo"]["lng"]),
+    }
 
 
 # ─────────────────────────────────────────────
@@ -188,12 +196,11 @@ def clamp_limit(limit: int) -> int:
 
 @app.get("/")
 async def root():
-    return {"status": "online", "message": "Social Network BFS API v2 online"}
+    return {"status": "online", "message": "Outbreak Tracker API v3 online"}
 
 
 @app.get("/users")
-async def get_users(limit: int = Query(default=15, ge=3, le=15)):
-    """Lista usuários da rede social. O parâmetro limit filtra os primeiros N usuários."""
+async def get_users(limit: int = Query(default=25, ge=3, le=25)):
     all_users = await fetch_users()
     users = all_users[:clamp_limit(limit)]
     return {
@@ -216,15 +223,7 @@ async def get_users(limit: int = Query(default=15, ge=3, le=15)):
 
 
 @app.get("/graph")
-async def get_graph(limit: int = Query(default=15, ge=3, le=15)):
-    """
-    Retorna a estrutura completa do grafo:
-    - nodes: lista de vértices com metadados
-    - edges: lista de arestas (pares de IDs)
-    - stats: estatísticas gerais do grafo
-
-    O parâmetro limit define quantos usuários incluir no grafo.
-    """
+async def get_graph(limit: int = Query(default=25, ge=3, le=25)):
     all_users = await fetch_users()
     users = all_users[:clamp_limit(limit)]
     graph = build_graph(users)
@@ -233,25 +232,12 @@ async def get_graph(limit: int = Query(default=15, ge=3, le=15)):
     seen: set = set()
     for uid, neighbors in graph.items():
         for nid in neighbors:
-            edge_key = tuple(sorted([uid, nid]))
-            if edge_key not in seen:
-                seen.add(edge_key)
-                edges.append({"source": edge_key[0], "target": edge_key[1]})
+            key = tuple(sorted([uid, nid]))
+            if key not in seen:
+                seen.add(key)
+                edges.append({"source": key[0], "target": key[1]})
 
-    nodes = [
-        {
-            "id": u["id"],
-            "name": u["name"],
-            "username": u["username"],
-            "city": u["address"]["city"],
-            "company": u["company"]["name"],
-            "degree": len(graph[u["id"]]),
-            "lat": float(u["address"]["geo"]["lat"]),
-            "lng": float(u["address"]["geo"]["lng"]),
-        }
-        for u in users
-    ]
-
+    nodes = [user_to_node(u, len(graph[u["id"]])) for u in users]
     total_degree = sum(n["degree"] for n in nodes)
 
     return {
@@ -266,72 +252,114 @@ async def get_graph(limit: int = Query(default=15, ge=3, le=15)):
     }
 
 
-@app.post("/shortest-path")
-async def shortest_path(req: PathRequest):
+@app.get("/contagion-spread")
+async def contagion_spread(
+    source_id: int = Query(..., description="ID do Paciente Zero"),
+    limit: int = Query(default=25, ge=3, le=25),
+):
     """
-    Encontra o caminho mais curto entre dois usuários usando BFS.
+    Mapeia todos os colaboradores atingíveis a partir do Paciente Zero,
+    com o grau de exposição (distância BFS) de cada um.
 
-    Body JSON: { "source_id": 1, "target_id": 8, "limit": 15 }
-
-    Retorna caminho, detalhes de cada nó e número de saltos.
+    Retorna:
+      - source: dados do Paciente Zero
+      - exposed: lista de expostos ordenados por distância
+      - by_degree: contagem por grau (1, 2, 3+)
+      - total_exposed, total_safe
     """
     all_users = await fetch_users()
-    users = all_users[:clamp_limit(req.limit or 15)]
+    users = all_users[:clamp_limit(limit)]
+    user_map = {u["id"]: u for u in users}
+
+    if source_id not in user_map:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Paciente Zero ID {source_id} não encontrado no grafo atual."
+        )
+
+    graph = build_graph(users)
+    distances = bfs_all(graph, source_id)
+
+    exposed = []
+    for uid, u in user_map.items():
+        if uid == source_id:
+            continue
+        dist = distances.get(uid)
+        if dist is not None:
+            exposed.append({
+                "id": uid,
+                "name": u["name"],
+                "username": u["username"],
+                "city": u["address"]["city"],
+                "company": u["company"]["name"],
+                "distance": dist,
+            })
+
+    exposed.sort(key=lambda x: x["distance"])
+
+    by_degree: dict = {}
+    for e in exposed:
+        key = str(min(e["distance"], 3))
+        by_degree[key] = by_degree.get(key, 0) + 1
+
+    total_in_graph = len(users) - 1
+    src = user_map[source_id]
+
+    return {
+        "source": {
+            "id": source_id,
+            "name": src["name"],
+            "city": src["address"]["city"],
+            "company": src["company"]["name"],
+        },
+        "exposed": exposed,
+        "total_exposed": len(exposed),
+        "total_safe": total_in_graph - len(exposed),
+        "by_degree": by_degree,
+        "message": (
+            f"{len(exposed)} de {total_in_graph} colaboradores atingíveis "
+            f"a partir de {src['name']}."
+        ),
+    }
+
+
+@app.post("/shortest-path")
+async def shortest_path(req: PathRequest):
+    all_users = await fetch_users()
+    users = all_users[:clamp_limit(req.limit or 25)]
     user_map = {u["id"]: u for u in users}
     valid_ids = set(user_map.keys())
 
     if req.source_id not in valid_ids:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Usuário com ID {req.source_id} não encontrado no grafo atual."
-        )
+        raise HTTPException(status_code=404,
+                            detail=f"Usuário ID {req.source_id} não encontrado.")
     if req.target_id not in valid_ids:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Usuário com ID {req.target_id} não encontrado no grafo atual."
-        )
+        raise HTTPException(status_code=404,
+                            detail=f"Usuário ID {req.target_id} não encontrado.")
 
     graph = build_graph(users)
     path = bfs(graph, req.source_id, req.target_id)
 
     if path is None:
-        return {
-            "exists": False,
-            "path": [],
-            "path_details": [],
-            "distance": -1,
-            "message": "Sem caminho entre os usuários (grafo desconectado).",
-        }
+        return {"exists": False, "path": [], "path_details": [],
+                "distance": -1, "message": "Sem caminho (grafo desconectado)."}
 
     path_details = [
-        {
-            "id": uid,
-            "name": user_map[uid]["name"],
-            "username": user_map[uid]["username"],
-            "city": user_map[uid]["address"]["city"],
-            "company": user_map[uid]["company"]["name"],
-        }
+        {"id": uid, "name": user_map[uid]["name"],
+         "username": user_map[uid]["username"],
+         "city": user_map[uid]["address"]["city"],
+         "company": user_map[uid]["company"]["name"]}
         for uid in path
     ]
-
-    separation = len(path) - 1
-    return {
-        "exists": True,
-        "path": path,
-        "path_details": path_details,
-        "distance": separation,
-        "message": f"Caminho encontrado com {separation} grau(s) de separação.",
-    }
+    sep = len(path) - 1
+    return {"exists": True, "path": path, "path_details": path_details,
+            "distance": sep,
+            "message": f"Caminho com {sep} grau(s) de separação."}
 
 
 @app.get("/farthest-users")
-async def farthest_users(limit: int = Query(default=15, ge=3, le=15)):
-    """
-    Calcula o diâmetro do grafo: encontra os dois usuários mais distantes.
-
-    Executa BFS a partir de cada vértice e mantém o maior caminho.
-    Complexidade: O(V x (V + E))
-    """
+async def farthest_users(limit: int = Query(default=25, ge=3, le=25)):
+    """Diâmetro do grafo: os dois colaboradores mais distantes entre si."""
     all_users = await fetch_users()
     users = all_users[:clamp_limit(limit)]
     graph = build_graph(users)
@@ -354,13 +382,10 @@ async def farthest_users(limit: int = Query(default=15, ge=3, le=15)):
         return {"message": "Grafo desconectado ou vazio."}
 
     path_details = [
-        {
-            "id": uid,
-            "name": user_map[uid]["name"],
-            "username": user_map[uid]["username"],
-            "city": user_map[uid]["address"]["city"],
-            "company": user_map[uid]["company"]["name"],
-        }
+        {"id": uid, "name": user_map[uid]["name"],
+         "username": user_map[uid]["username"],
+         "city": user_map[uid]["address"]["city"],
+         "company": user_map[uid]["company"]["name"]}
         for uid in farthest_path
     ]
 

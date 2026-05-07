@@ -1,22 +1,20 @@
 /**
- * api.ts — Camada de comunicação com o backend FastAPI
- * Todos os endpoints do backend são consumidos aqui via axios.
+ * api.ts — Camada de comunicação com o Outbreak Tracker API
  */
 
 import axios from "axios";
 
 const BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
-
 const api = axios.create({ baseURL: BASE_URL });
 
-// ── Tipos ────────────────────────────────────────────────────────────────────
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 
 export interface User {
   id: number;
   name: string;
   username: string;
   email: string;
-  city: string;
+  city: string;   // sala do escritório
   company: string;
   website: string;
   lat: number;
@@ -27,7 +25,7 @@ export interface GraphNode {
   id: number;
   name: string;
   username: string;
-  city: string;
+  city: string;   // sala do escritório
   company: string;
   degree: number;
   lat: number;
@@ -50,20 +48,30 @@ export interface GraphData {
   };
 }
 
+export interface ExposedPerson {
+  id: number;
+  name: string;
+  username: string;
+  city: string;
+  company: string;
+  distance: number;
+}
+
+export interface SpreadResult {
+  source: { id: number; name: string; city: string; company: string };
+  exposed: ExposedPerson[];
+  total_exposed: number;
+  total_safe: number;
+  by_degree: Record<string, number>;
+  message: string;
+}
+
 export interface PathDetail {
   id: number;
   name: string;
   username: string;
   city: string;
   company: string;
-}
-
-export interface ShortestPathResult {
-  exists: boolean;
-  path: number[];
-  path_details: PathDetail[];
-  distance: number;
-  message: string;
 }
 
 export interface FarthestUsersResult {
@@ -77,30 +85,29 @@ export interface FarthestUsersResult {
 
 // ── Chamadas à API ────────────────────────────────────────────────────────────
 
-export const fetchUsers = async (limit: number = 15): Promise<User[]> => {
+export const fetchUsers = async (limit: number = 25): Promise<User[]> => {
   const res = await api.get("/users", { params: { limit } });
   return res.data.users;
 };
 
-export const fetchGraph = async (limit: number = 15): Promise<GraphData> => {
+export const fetchGraph = async (limit: number = 25): Promise<GraphData> => {
   const res = await api.get("/graph", { params: { limit } });
   return res.data;
 };
 
-export const findShortestPath = async (
+export const findSpread = async (
   sourceId: number,
-  targetId: number,
-  limit: number = 15
-): Promise<ShortestPathResult> => {
-  const res = await api.post("/shortest-path", {
-    source_id: sourceId,
-    target_id: targetId,
-    limit,
+  limit: number = 25
+): Promise<SpreadResult> => {
+  const res = await api.get("/contagion-spread", {
+    params: { source_id: sourceId, limit },
   });
   return res.data;
 };
 
-export const findFarthestUsers = async (limit: number = 15): Promise<FarthestUsersResult> => {
+export const findFarthestUsers = async (
+  limit: number = 25
+): Promise<FarthestUsersResult> => {
   const res = await api.get("/farthest-users", { params: { limit } });
   return res.data;
 };
