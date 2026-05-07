@@ -1,14 +1,5 @@
 /**
  * GraphCanvas.tsx — Mapa de contatos do escritório via Canvas API pura.
- *
- * Funcionalidades:
- * - 8 salas desenhadas como retângulos de fundo (planta baixa do escritório)
- * - Força de clustering: cada nó é atraído ao centro de sua sala
- * - Soft walls: nós permanecem dentro de suas caixas de sala
- * - Nós coloridos por grau de exposição (0=PacienteZero, 1=1ºgrau, etc.)
- * - Arestas entre expostos destacadas em laranja (rota de contágio)
- * - Salas contaminadas recebem tint vermelho
- * - Drag, zoom e tooltip nativos no Canvas
  */
 
 import React, { useEffect, useRef, useCallback } from "react";
@@ -17,65 +8,53 @@ import { GraphNode, GraphEdge } from "../api";
 interface Props {
   nodes: GraphNode[];
   edges: GraphEdge[];
-  exposureMap: Record<number, number>; // nodeId -> distância do PacienteZero
+  exposureMap: Record<number, number>;
   sourceId: number | null;
 }
 
 // ── Paleta ────────────────────────────────────────────────────────────────────
 const EXPOSURE_FILL   = ["#ff3d57", "#ff8142", "#ffc04a", "#ffd166", "#ffe59a"];
-const EXPOSURE_STROKE = ["#ff7a8a", "#ffab7a", "#ffd580", "#ffe09a", "#fff0c0"];
+const EXPOSURE_STROKE = ["#ff8a9a", "#ffb888", "#ffe090", "#ffeeaa", "#fff5cc"];
 const NODE_FILL_SAFE   = "#0c2138";
 const NODE_STROKE_SAFE = "#00c4a7";
-const EDGE_EXPOSED     = "rgba(255,129,66,0.70)";
-const EDGE_NORMAL      = "rgba(15,48,80,0.55)";
+const EDGE_EXPOSED     = "rgba(255,129,66,0.65)";
+const EDGE_NORMAL      = "rgba(20,60,100,0.50)";
 
-// ── Definição das salas ───────────────────────────────────────────────────────
-// Coordenadas em fração de W/H do canvas (rx,ry = canto superior-esquerdo)
-interface RoomDef {
-  rx: number; ry: number; rw: number; rh: number;
-  label: string; icon: string;
-}
+// ── Salas do escritório ───────────────────────────────────────────────────────
+interface RoomDef { rx: number; ry: number; rw: number; rh: number; label: string; icon: string; }
 
 const ROOM_DEFS: Record<string, RoomDef> = {
-  "Recepção":   { rx: 0.02, ry: 0.04, rw: 0.13, rh: 0.34, label: "Recepção",    icon: "🚪" },
-  "TI":         { rx: 0.19, ry: 0.04, rw: 0.22, rh: 0.34, label: "TI / Dev",    icon: "🖥" },
-  "Financeiro": { rx: 0.46, ry: 0.04, rw: 0.21, rh: 0.34, label: "Financeiro",  icon: "📊" },
-  "Diretoria":  { rx: 0.02, ry: 0.44, rw: 0.15, rh: 0.34, label: "Diretoria",   icon: "🏛" },
-  "RH":         { rx: 0.21, ry: 0.44, rw: 0.21, rh: 0.34, label: "RH",          icon: "👥" },
-  "Comercial":  { rx: 0.46, ry: 0.44, rw: 0.27, rh: 0.34, label: "Comercial",   icon: "💼" },
-  "Jurídico":   { rx: 0.02, ry: 0.84, rw: 0.23, rh: 0.14, label: "Jurídico",    icon: "⚖" },
-  "Operações":  { rx: 0.31, ry: 0.84, rw: 0.26, rh: 0.14, label: "Operações",   icon: "⚙" },
+  "Recepção":   { rx: 0.02, ry: 0.03, rw: 0.13, rh: 0.35, label: "Recepção",   icon: "🚪" },
+  "TI":         { rx: 0.19, ry: 0.03, rw: 0.22, rh: 0.35, label: "TI / Dev",   icon: "🖥" },
+  "Financeiro": { rx: 0.46, ry: 0.03, rw: 0.21, rh: 0.35, label: "Financeiro", icon: "📊" },
+  "Diretoria":  { rx: 0.02, ry: 0.44, rw: 0.15, rh: 0.35, label: "Diretoria",  icon: "🏛" },
+  "RH":         { rx: 0.21, ry: 0.44, rw: 0.21, rh: 0.35, label: "RH",         icon: "👥" },
+  "Comercial":  { rx: 0.46, ry: 0.44, rw: 0.27, rh: 0.35, label: "Comercial",  icon: "💼" },
+  "Jurídico":   { rx: 0.02, ry: 0.85, rw: 0.23, rh: 0.13, label: "Jurídico",   icon: "⚖" },
+  "Operações":  { rx: 0.31, ry: 0.85, rw: 0.26, rh: 0.13, label: "Operações",  icon: "⚙" },
 };
 
-// ── Tipo interno da simulação ─────────────────────────────────────────────────
 interface SimNode extends GraphNode {
-  x: number; y: number;
-  vx: number; vy: number;
+  x: number; y: number; vx: number; vy: number;
   fx: number | null; fy: number | null;
 }
 
-// ── Utilitário: retângulo arredondado ─────────────────────────────────────────
-function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number, y: number, w: number, h: number, r: number
-) {
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.lineTo(x + w - r, y);
   ctx.quadraticCurveTo(x + w, y,     x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
+  ctx.lineTo(x + w,     y + h - r);
   ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h,     x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y,         x + r, y);
+  ctx.lineTo(x + r,     y + h);
+  ctx.quadraticCurveTo(x,     y + h, x, y + h - r);
+  ctx.lineTo(x,         y + r);
+  ctx.quadraticCurveTo(x,     y,     x + r, y);
   ctx.closePath();
 }
 
 // ── Componente ────────────────────────────────────────────────────────────────
-export const GraphCanvas: React.FC<Props> = ({
-  nodes, edges, exposureMap, sourceId,
-}) => {
+export const GraphCanvas: React.FC<Props> = ({ nodes, edges, exposureMap, sourceId }) => {
   const canvasRef   = useRef<HTMLCanvasElement>(null);
   const simNodesRef = useRef<SimNode[]>([]);
   const rafRef      = useRef<number>(0);
@@ -86,26 +65,20 @@ export const GraphCanvas: React.FC<Props> = ({
   const exposureRef = useRef(exposureMap);
   const sourceRef   = useRef(sourceId);
 
-  // Manter refs de exposureMap e sourceId sempre atualizados
+  // ── Dimensões estáveis — evita loop do ResizeObserver ─────────────────────
+  const wRef = useRef(800);
+  const hRef = useRef(550);
+
   useEffect(() => { exposureRef.current = exposureMap; }, [exposureMap]);
   useEffect(() => { sourceRef.current   = sourceId;    }, [sourceId]);
 
-  // ── Helpers de cor ──────────────────────────────────────────────────────────
-  const nodeFill = (n: SimNode): string => {
-    const d = exposureRef.current[n.id];
-    return d === undefined ? NODE_FILL_SAFE : EXPOSURE_FILL[Math.min(d, EXPOSURE_FILL.length - 1)];
-  };
-  const nodeStroke = (n: SimNode): string => {
-    const d = exposureRef.current[n.id];
-    return d === undefined ? NODE_STROKE_SAFE : EXPOSURE_STROKE[Math.min(d, EXPOSURE_STROKE.length - 1)];
-  };
-  const nodeRadius = (n: SimNode): number => {
-    if (n.id === sourceRef.current) return 20;
-    return exposureRef.current[n.id] !== undefined ? 17 : 13;
-  };
-  const isExposed = (n: SimNode): boolean => exposureRef.current[n.id] !== undefined;
+  // ── Helpers de nó ──────────────────────────────────────────────────────────
+  const nodeFill   = (n: SimNode) => { const d = exposureRef.current[n.id]; return d === undefined ? NODE_FILL_SAFE   : EXPOSURE_FILL[Math.min(d, 4)]; };
+  const nodeStroke = (n: SimNode) => { const d = exposureRef.current[n.id]; return d === undefined ? NODE_STROKE_SAFE : EXPOSURE_STROKE[Math.min(d, 4)]; };
+  const nodeR      = (n: SimNode) => n.id === sourceRef.current ? 20 : exposureRef.current[n.id] !== undefined ? 17 : 13;
+  const isExposed  = (n: SimNode) => exposureRef.current[n.id] !== undefined;
 
-  // ── Draw ────────────────────────────────────────────────────────────────────
+  // ── Desenho ────────────────────────────────────────────────────────────────
   const draw = useCallback((ctx: CanvasRenderingContext2D, W: number, H: number) => {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -119,90 +92,71 @@ export const GraphCanvas: React.FC<Props> = ({
     const sNodes = simNodesRef.current;
     const expo   = exposureRef.current;
 
-    // Salas contaminadas
     const contamRooms = new Set<string>();
-    for (const n of sNodes) {
-      if (expo[n.id] !== undefined) contamRooms.add(n.city);
-    }
+    for (const n of sNodes) if (expo[n.id] !== undefined) contamRooms.add(n.city);
 
-    // 1. Fundo das salas
+    // 1. Salas
     for (const [roomName, rd] of Object.entries(ROOM_DEFS)) {
       if (!sNodes.some((n) => n.city === roomName)) continue;
-
       const x = rd.rx * W, y = rd.ry * H, w = rd.rw * W, h = rd.rh * H;
-      const contaminated = contamRooms.has(roomName);
+      const hot = contamRooms.has(roomName);
 
       roundRect(ctx, x, y, w, h, 8);
-      ctx.fillStyle = contaminated ? "rgba(255,61,87,0.07)" : "rgba(12,33,56,0.55)";
+      ctx.fillStyle   = hot ? "rgba(255,61,87,0.10)" : "rgba(10,40,70,0.70)";
       ctx.fill();
-      ctx.strokeStyle = contaminated ? "rgba(255,61,87,0.45)" : "#0f3050";
-      ctx.lineWidth = contaminated ? 1.5 : 1;
+      ctx.strokeStyle = hot ? "rgba(255,100,80,0.70)" : "rgba(0,150,120,0.40)";
+      ctx.lineWidth   = hot ? 1.5 : 1;
       ctx.stroke();
 
-      // Label da sala
-      ctx.font = `600 11px Inter, sans-serif`;
-      ctx.fillStyle = contaminated ? "rgba(255,129,66,0.8)" : "rgba(91,154,181,0.7)";
-      ctx.textAlign = "left";
+      ctx.font         = "600 11px Inter, sans-serif";
+      ctx.fillStyle    = hot ? "rgba(255,150,100,0.90)" : "rgba(0,196,167,0.75)";
+      ctx.textAlign    = "left";
       ctx.textBaseline = "top";
       ctx.fillText(`${rd.icon} ${rd.label}`, x + 8, y + 7);
     }
 
     // 2. Arestas
-    const nodeById = new Map(sNodes.map((n) => [n.id, n]));
+    const byId = new Map(sNodes.map((n) => [n.id, n]));
     for (const edge of edges) {
-      const src = nodeById.get(edge.source);
-      const tgt = nodeById.get(edge.target);
-      if (!src || !tgt) continue;
-
-      const bothExposed = expo[src.id] !== undefined && expo[tgt.id] !== undefined;
+      const s = byId.get(edge.source), t = byId.get(edge.target);
+      if (!s || !t) continue;
+      const both = expo[s.id] !== undefined && expo[t.id] !== undefined;
       ctx.beginPath();
-      ctx.moveTo(src.x, src.y);
-      ctx.lineTo(tgt.x, tgt.y);
-      ctx.strokeStyle = bothExposed ? EDGE_EXPOSED : EDGE_NORMAL;
-      ctx.lineWidth   = bothExposed ? 2 : 1.2;
+      ctx.moveTo(s.x, s.y);
+      ctx.lineTo(t.x, t.y);
+      ctx.strokeStyle = both ? EDGE_EXPOSED : EDGE_NORMAL;
+      ctx.lineWidth   = both ? 2 : 1.2;
       ctx.stroke();
     }
 
     // 3. Nós
     for (const n of sNodes) {
-      const r   = nodeRadius(n);
-      const exp = isExposed(n);
+      const r    = nodeR(n);
       const fill = nodeFill(n);
       const strk = nodeStroke(n);
+      const exp  = isExposed(n);
 
-      // Glow para expostos
       if (exp) {
         ctx.save();
         ctx.shadowColor = fill;
-        ctx.shadowBlur  = n.id === sourceRef.current ? 22 : 14;
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-        ctx.fillStyle = fill;
-        ctx.fill();
+        ctx.shadowBlur  = n.id === sourceRef.current ? 24 : 14;
+        ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = fill; ctx.fill();
         ctx.restore();
       }
 
-      // Círculo do nó
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = fill;
-      ctx.fill();
-      ctx.strokeStyle = strk;
-      ctx.lineWidth   = exp ? 2.5 : 1.5;
-      ctx.stroke();
+      ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+      ctx.fillStyle   = fill; ctx.fill();
+      ctx.strokeStyle = strk; ctx.lineWidth = exp ? 2.5 : 1.5; ctx.stroke();
 
-      // ID interno
-      ctx.fillStyle    = exp ? "#fff" : "rgba(91,154,181,0.8)";
+      ctx.fillStyle    = exp ? "#fff" : "rgba(91,154,181,0.80)";
       ctx.font         = `bold ${exp ? 10 : 8}px IBM Plex Mono, monospace`;
-      ctx.textAlign    = "center";
-      ctx.textBaseline = "middle";
+      ctx.textAlign    = "center"; ctx.textBaseline = "middle";
       ctx.fillText(String(n.id), n.x, n.y);
 
-      // Nome abaixo
-      ctx.fillStyle    = exp ? fill : "rgba(43,95,120,0.9)";
+      ctx.fillStyle    = exp ? fill : "rgba(43,95,120,0.85)";
       ctx.font         = `${exp ? "600 " : ""}9px Inter, sans-serif`;
-      ctx.textAlign    = "center";
-      ctx.textBaseline = "top";
+      ctx.textAlign    = "center"; ctx.textBaseline = "top";
       ctx.fillText(n.name.split(" ")[0], n.x, n.y + r + 4);
     }
 
@@ -215,19 +169,20 @@ export const GraphCanvas: React.FC<Props> = ({
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const W = canvas.width, H = canvas.height;
+
+    const W = wRef.current;
+    const H = hRef.current;
     const sNodes = simNodesRef.current;
     if (!sNodes.length) return;
 
-    const REPULSION   = 2200;
-    const SPRING_K    = 0.035;
-    const SPRING_LEN  = 80;
-    const CLUSTER_K   = 0.045;
-    const WALL_K      = 0.09;
-    const WALL_MARGIN = 18;
-    const DAMPING     = 0.80;
+    const REPULSION  = 2000;
+    const SPRING_K   = 0.030;
+    const SPRING_LEN = 80;
+    const CLUSTER_K  = 0.050;
+    const WALL_K     = 0.10;
+    const WALL_PAD   = 20;
+    const DAMPING    = 0.78;
 
-    // Repulsão entre todos os pares
     for (let i = 0; i < sNodes.length; i++) {
       for (let j = i + 1; j < sNodes.length; j++) {
         const a = sNodes[i], b = sNodes[j];
@@ -241,7 +196,6 @@ export const GraphCanvas: React.FC<Props> = ({
       }
     }
 
-    // Atração pelas arestas (spring)
     const byId = new Map(sNodes.map((n) => [n.id, n]));
     for (const edge of edges) {
       const a = byId.get(edge.source), b = byId.get(edge.target);
@@ -254,85 +208,97 @@ export const GraphCanvas: React.FC<Props> = ({
       if (b.fx === null) { b.vx -= fx; b.vy -= fy; }
     }
 
-    // Clustering + soft walls por sala
     for (const n of sNodes) {
       if (n.fx !== null) continue;
       const rd = ROOM_DEFS[n.city];
       if (!rd) continue;
-
       const cx = (rd.rx + rd.rw / 2) * W;
       const cy = (rd.ry + rd.rh / 2) * H;
       n.vx += (cx - n.x) * CLUSTER_K;
       n.vy += (cy - n.y) * CLUSTER_K;
 
-      const left  = rd.rx * W + WALL_MARGIN;
-      const right = (rd.rx + rd.rw) * W - WALL_MARGIN;
-      const top   = rd.ry * H + WALL_MARGIN + 20; // espaço para label
-      const bot   = (rd.ry + rd.rh) * H - WALL_MARGIN;
-
+      const left  = rd.rx * W + WALL_PAD;
+      const right = (rd.rx + rd.rw) * W - WALL_PAD;
+      const top   = rd.ry * H + WALL_PAD + 18;
+      const bot   = (rd.ry + rd.rh) * H - WALL_PAD;
       if (n.x < left)  n.vx += (left  - n.x) * WALL_K;
       if (n.x > right) n.vx += (right - n.x) * WALL_K;
       if (n.y < top)   n.vy += (top   - n.y) * WALL_K;
       if (n.y > bot)   n.vy += (bot   - n.y) * WALL_K;
     }
 
-    // Integração de Euler
     for (const n of sNodes) {
       if (n.fx !== null) { n.x = n.fx; n.y = n.fy!; }
-      else {
-        n.vx *= DAMPING; n.vy *= DAMPING;
-        n.x  += n.vx;    n.y  += n.vy;
-      }
+      else { n.vx *= DAMPING; n.vy *= DAMPING; n.x += n.vx; n.y += n.vy; }
     }
 
     draw(ctx, W, H);
     rafRef.current = requestAnimationFrame(runSimulation);
   }, [edges, draw]);
 
-  // ── Inicializar nós com posição na sala ─────────────────────────────────────
+  // ── Resize — com guarda contra loop ────────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const W = canvas.width || canvas.offsetWidth || 800;
-    const H = canvas.height || canvas.offsetHeight || 550;
 
-    const existing = new Map(simNodesRef.current.map((n) => [n.id, n]));
-
-    simNodesRef.current = nodes.map((n) => {
-      const prev = existing.get(n.id);
-      if (prev) return { ...n, x: prev.x, y: prev.y, vx: prev.vx, vy: prev.vy, fx: null, fy: null };
-
-      const rd = ROOM_DEFS[n.city];
-      const cx = rd ? (rd.rx + rd.rw / 2) * W : W / 2;
-      const cy = rd ? (rd.ry + rd.rh / 2) * H : H / 2;
-      return {
-        ...n,
-        x: cx + (Math.random() - 0.5) * 35,
-        y: cy + (Math.random() - 0.5) * 25,
-        vx: 0, vy: 0, fx: null, fy: null,
-      };
-    });
-
-    cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(runSimulation);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [nodes, runSimulation]);
-
-  // ── ResizeObserver ──────────────────────────────────────────────────────────
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const resize = () => {
-      const p = canvas.parentElement;
-      if (!p) return;
-      canvas.width  = p.clientWidth;
-      canvas.height = p.clientHeight;
+    const applySize = (W: number, H: number) => {
+      if (!W || !H) return;
+      if (W === wRef.current && H === hRef.current) return; // evita loop
+      wRef.current  = W;
+      hRef.current  = H;
+      canvas.width  = W;
+      canvas.height = H;
     };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(canvas.parentElement!);
+
+    // Tamanho inicial
+    const p = canvas.parentElement;
+    if (p) applySize(p.clientWidth, p.clientHeight);
+
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        applySize(Math.round(width), Math.round(height));
+      }
+    });
+    if (canvas.parentElement) ro.observe(canvas.parentElement);
     return () => ro.disconnect();
   }, []);
+
+  // ── Inicializar nós nas posições das salas ──────────────────────────────────
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const init = () => {
+      const W = wRef.current;
+      const H = hRef.current;
+      const existing = new Map(simNodesRef.current.map((n) => [n.id, n]));
+
+      simNodesRef.current = nodes.map((n) => {
+        const prev = existing.get(n.id);
+        if (prev) return { ...n, x: prev.x, y: prev.y, vx: prev.vx, vy: prev.vy, fx: null, fy: null };
+
+        const rd = ROOM_DEFS[n.city];
+        const cx = rd ? (rd.rx + rd.rw / 2) * W : W / 2;
+        const cy = rd ? (rd.ry + rd.rh / 2) * H : H / 2;
+        return { ...n, x: cx + (Math.random() - 0.5) * 30, y: cy + (Math.random() - 0.5) * 22, vx: 0, vy: 0, fx: null, fy: null };
+      });
+
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(runSimulation);
+    };
+
+    // Garante que o canvas já foi dimensionado antes de inicializar
+    if (wRef.current > 0 && hRef.current > 0) {
+      init();
+    } else {
+      // Aguarda um frame para o ResizeObserver disparar
+      const id = requestAnimationFrame(init);
+      return () => { cancelAnimationFrame(id); cancelAnimationFrame(rafRef.current); };
+    }
+
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [nodes, runSimulation]);
 
   // ── Tooltip ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -350,7 +316,6 @@ export const GraphCanvas: React.FC<Props> = ({
     return () => div.remove();
   }, []);
 
-  // ── Conversão coordenadas ────────────────────────────────────────────────────
   const toWorld = (cx: number, cy: number) => ({
     x: (cx - offsetRef.current.x) / scaleRef.current,
     y: (cy - offsetRef.current.y) / scaleRef.current,
@@ -358,14 +323,13 @@ export const GraphCanvas: React.FC<Props> = ({
 
   const hitTest = useCallback((wx: number, wy: number): SimNode | null => {
     for (const n of simNodesRef.current) {
-      const r  = nodeRadius(n as SimNode);
+      const r = nodeR(n as SimNode);
       const dx = n.x - wx, dy = n.y - wy;
       if (dx * dx + dy * dy <= r * r) return n;
     }
     return null;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Eventos de mouse ─────────────────────────────────────────────────────────
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -395,8 +359,8 @@ export const GraphCanvas: React.FC<Props> = ({
         const dist = exposureRef.current[hit.id];
         const distLabel =
           dist === 0 ? '<span style="color:#ff3d57;font-weight:700">Paciente Zero</span>' :
-          dist === 1 ? '<span style="color:#ff8142">1º grau de exposição</span>' :
-          dist === 2 ? '<span style="color:#ffc04a">2º grau de exposição</span>' :
+          dist === 1 ? '<span style="color:#ff8142">1º grau</span>' :
+          dist === 2 ? '<span style="color:#ffc04a">2º grau</span>' :
           dist !== undefined ? `<span style="color:#ffd166">${dist}º grau</span>` :
           '<span style="color:#00c4a7">Sem exposição</span>';
         tip.innerHTML = `
@@ -404,7 +368,7 @@ export const GraphCanvas: React.FC<Props> = ({
           <div style="color:#5b9ab5">@${hit.username}</div>
           <div style="margin-top:6px">🏢 ${hit.city}</div>
           <div>💼 ${hit.company}</div>
-          <div>🔗 Grau: ${hit.degree}</div>
+          <div>🔗 Grau de contato: ${hit.degree}</div>
           <div style="margin-top:4px">${distLabel}</div>`;
         tip.style.opacity = "1";
         tip.style.left = e.clientX + 14 + "px";
@@ -416,11 +380,7 @@ export const GraphCanvas: React.FC<Props> = ({
   }, [hitTest]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleMouseUp = useCallback(() => {
-    if (dragRef.current) {
-      dragRef.current.node.fx = null;
-      dragRef.current.node.fy = null;
-      dragRef.current = null;
-    }
+    if (dragRef.current) { dragRef.current.node.fx = null; dragRef.current.node.fy = null; dragRef.current = null; }
   }, []);
 
   const handleMouseLeave = useCallback(() => {
@@ -432,11 +392,11 @@ export const GraphCanvas: React.FC<Props> = ({
     e.preventDefault();
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const rect   = canvas.getBoundingClientRect();
-    const mx     = e.clientX - rect.left;
-    const my     = e.clientY - rect.top;
-    const delta  = e.deltaY > 0 ? 0.9 : 1.1;
-    const newS   = Math.max(0.25, Math.min(3.5, scaleRef.current * delta));
+    const rect  = canvas.getBoundingClientRect();
+    const mx    = e.clientX - rect.left;
+    const my    = e.clientY - rect.top;
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    const newS  = Math.max(0.25, Math.min(3.5, scaleRef.current * delta));
     offsetRef.current.x = mx - (mx - offsetRef.current.x) * (newS / scaleRef.current);
     offsetRef.current.y = my - (my - offsetRef.current.y) * (newS / scaleRef.current);
     scaleRef.current = newS;
